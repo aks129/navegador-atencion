@@ -86,3 +86,51 @@ export function validateFileSize(file: File, maxSizeMB: number = 10): boolean {
 export function validateFileType(file: File): boolean {
   return file.type === 'application/json' || file.name.toLowerCase().endsWith('.json');
 }
+
+/**
+ * Validate file type for extended format support (JSON, CSV, Excel)
+ * Returns the detected file type or null if unsupported
+ */
+export function validateExtendedFileType(file: File): 'json' | 'csv' | 'tsv' | 'excel' | null {
+  const name = file.name.toLowerCase();
+  const mimeType = file.type.toLowerCase();
+
+  // JSON (FHIR Bundle/Resource)
+  if (mimeType === 'application/json' || name.endsWith('.json')) {
+    return 'json';
+  }
+
+  // CSV
+  if (mimeType === 'text/csv' || mimeType === 'application/csv' || name.endsWith('.csv')) {
+    return 'csv';
+  }
+
+  // TSV
+  if (mimeType === 'text/tab-separated-values' || name.endsWith('.tsv')) {
+    return 'tsv';
+  }
+
+  // Plain text could be CSV or TSV - we'll need to detect later
+  if (mimeType === 'text/plain' && name.endsWith('.txt')) {
+    return 'csv'; // Default to CSV, will auto-detect delimiter
+  }
+
+  // Excel
+  if (
+    mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    mimeType === 'application/vnd.ms-excel' ||
+    name.endsWith('.xlsx') ||
+    name.endsWith('.xls')
+  ) {
+    return 'excel';
+  }
+
+  return null;
+}
+
+/**
+ * Get accepted file types string for input element
+ */
+export function getAcceptedFileTypes(): string {
+  return '.json,.csv,.tsv,.txt,.xlsx,.xls,application/json,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
+}

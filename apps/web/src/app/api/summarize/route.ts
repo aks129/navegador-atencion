@@ -1,12 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ClaudeClient } from '@plumly/summarizer'
-import { ResourceSelector } from '@plumly/fhir-utils'
+import {
+  ResourceSelector,
+  deidentifyFHIRBundle,
+  deidentifyFHIRResource,
+  validateFHIRBundle as validateBundle,
+  validateFHIRResource,
+  parseCSV
+} from '@plumly/fhir-utils'
 import { validateFHIRBundle } from '@/lib/fhir-validator'
 import type { FHIRBundle } from '@/types/fhir'
 import type { SummaryRequest, PersonaType, TemplateOptions } from '@plumly/summarizer'
+import type { DeidentificationOptions } from '@plumly/fhir-utils'
 
 interface RequestBody {
   bundle: FHIRBundle
+  /** Raw CSV/TSV content for conversion */
+  csvContent?: string
+  /** CSV parsing options */
+  csvOptions?: {
+    delimiter?: string
+    hasHeaders?: boolean
+  }
   options?: {
     targetAudience?: 'patient' | 'provider' | 'payer'
     outputFormat?: 'narrative' | 'structured' | 'composition'
@@ -15,15 +30,40 @@ interface RequestBody {
     persona?: PersonaType
     templateOptions?: TemplateOptions
     abTestVariant?: string
+    /** Enable de-identification before processing (default: true) */
+    deidentify?: boolean
+    /** Custom de-identification options */
+    deidentificationOptions?: DeidentificationOptions
   }
 }
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
 
+  // Track de-identification for response metadata
+  let deidentificationApplied = false
+  let deidentificationStats = { phiElementsProcessed: 0, modifiedFields: [] as string[] }
+
   try {
     const body: RequestBody = await request.json()
-    const { bundle, options = {} } = body
+    const { csvContent, csvOptions, options = {} } = body
+    let { bundle } = body
+
+    // Handle CSV input - convert to FHIR Bundle
+    if (csvContent && !bundle) {
+      const csvResult = parseCSV(csvContent, csvOptions)
+      if (!csvResult.success || !csvResult.bundle) {
+        return NextResponse.json(
+          {
+            error: 'Failed to parse CSV content',
+            errorType: 'validation',
+            details: csvResult.errors.join(', ')
+          },
+          { status: 400 }
+        )
+      }
+      bundle = csvResult.bundle as FHIRBundle
+    }
 
     // Validate FHIR bundle
     const isValid = validateFHIRBundle(bundle)
@@ -36,6 +76,21 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       )
+    }
+
+    // Apply de-identification if enabled (default: true for security)
+    const shouldDeidentify = options.deidentify !== false
+    if (shouldDeidentify) {
+      const deidentResult = deidentifyFHIRBundle(
+        bundle as unknown as Record<string, unknown>,
+        options.deidentificationOptions
+      )
+      bundle = deidentResult.data as unknown as FHIRBundle
+      deidentificationApplied = true
+      deidentificationStats = {
+        phiElementsProcessed: deidentResult.phiElementsProcessed,
+        modifiedFields: deidentResult.modifiedFields
+      }
     }
 
     // Check API key
@@ -86,7 +141,19 @@ export async function POST(request: NextRequest) {
       metadata: {
         ...result.metadata,
         totalProcessingTime: processingTime,
-        endpoint: '/api/summarize'
+        endpoint: '/api/summarize',
+        // Include de-identification metadata
+        deidentification: deidentificationApplied ? {
+          applied: true,
+          phiElementsProcessed: deidentificationStats.phiElementsProcessed,
+          note: 'Data was de-identified before processing. No PHI was stored or transmitted to the AI.'
+        } : {
+          applied: false,
+          note: 'De-identification was disabled for this request.'
+        },
+        // Confirm stateless processing
+        dataRetention: 'none',
+        processingNote: 'All data was processed in-memory and discarded after summary generation.'
       }
     })
   } catch (error: any) {
@@ -163,13 +230,34 @@ export async function GET() {
   return NextResponse.json({
     message: 'FHIR Summarization API',
     endpoints: {
-      POST: 'Generate AI summary from FHIR Bundle'
+      POST: 'Generate AI summary from FHIR Bundle or CSV data'
+    },
+    inputFormats: {
+      bundle: 'FHIR Bundle (JSON)',
+      csvContent: 'Raw CSV/TSV content (will be converted to FHIR Bundle)'
     },
     options: {
       targetAudience: ['patient', 'provider', 'payer'],
       outputFormat: ['narrative', 'structured', 'composition'],
       includeRecommendations: 'boolean',
-      focusAreas: 'array of strings'
+      focusAreas: 'array of strings',
+      deidentify: 'boolean (default: true) - Remove PHI before processing',
+      deidentificationOptions: {
+        removeNames: 'boolean',
+        maskDates: 'boolean',
+        removeGeographicData: 'boolean',
+        removePhoneNumbers: 'boolean',
+        removeEmails: 'boolean',
+        removeIdentifiers: 'boolean',
+        removeNetworkIdentifiers: 'boolean',
+        maskAccountNumbers: 'boolean',
+        usePlaceholders: 'boolean'
+      }
+    },
+    security: {
+      deidentification: 'PHI is removed/masked by default before AI processing',
+      dataRetention: 'No data is stored - all processing is stateless',
+      note: 'Original data is never persisted; only de-identified summaries are generated'
     }
   })
 }

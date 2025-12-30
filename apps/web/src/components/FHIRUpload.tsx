@@ -4,84 +4,175 @@ import { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Upload, FileText, AlertCircle, CheckCircle, X } from 'lucide-react'
-import { validateUploadedFile, validateFileSize, validateFileType } from '@plumly/fhir-utils'
-import type { ValidationResult, FileUploadResult } from '@plumly/fhir-utils'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import { Upload, FileText, AlertCircle, CheckCircle, X, Shield, FileSpreadsheet } from 'lucide-react'
+import {
+  validateUploadedFile,
+  validateFileSize,
+  validateExtendedFileType,
+  getAcceptedFileTypes,
+  parseCSV,
+  deidentifyFHIRBundle,
+  deidentifyFHIRResource,
+  validateFHIRBundle
+} from '@plumly/fhir-utils'
+import type { ValidationResult, FileUploadResult, SupportedFileType, DeidentificationOptions } from '@plumly/fhir-utils'
 
 interface FHIRUploadProps {
   onFileProcessed?: (result: FileUploadResult) => void
   maxFileSizeMB?: number
+  /** Enable de-identification before processing */
+  enableDeidentification?: boolean
+  /** Custom de-identification options */
+  deidentificationOptions?: DeidentificationOptions
 }
 
-export function FHIRUpload({ onFileProcessed, maxFileSizeMB = 10 }: FHIRUploadProps) {
+export function FHIRUpload({
+  onFileProcessed,
+  maxFileSizeMB = 10,
+  enableDeidentification: initialDeidentification = true,
+  deidentificationOptions
+}: FHIRUploadProps) {
   const [dragActive, setDragActive] = useState(false)
   const [processing, setProcessing] = useState(false)
+  const [deidentifyEnabled, setDeidentifyEnabled] = useState(initialDeidentification)
   const [lastResult, setLastResult] = useState<FileUploadResult | null>(null)
+
+  const createErrorResult = (error: string, startTime: number): FileUploadResult => ({
+    success: false,
+    validation: {
+      isValid: false,
+      isFHIRBundle: false,
+      isIndividualResource: false,
+      resourceCounts: {},
+      totalResources: 0,
+      errors: [error],
+      warnings: []
+    },
+    processingTime: Date.now() - startTime
+  })
 
   const handleFileProcessing = useCallback(async (file: File): Promise<FileUploadResult> => {
     const startTime = Date.now()
 
     // File size validation
     if (!validateFileSize(file, maxFileSizeMB)) {
-      return {
-        success: false,
-        validation: {
-          isValid: false,
-          isFHIRBundle: false,
-          isIndividualResource: false,
-          resourceCounts: {},
-          totalResources: 0,
-          errors: [`File size exceeds ${maxFileSizeMB}MB limit`],
-          warnings: []
-        },
-        processingTime: Date.now() - startTime
-      }
+      return createErrorResult(`File size exceeds ${maxFileSizeMB}MB limit`, startTime)
     }
 
-    // File type validation
-    if (!validateFileType(file)) {
-      return {
-        success: false,
-        validation: {
-          isValid: false,
-          isFHIRBundle: false,
-          isIndividualResource: false,
-          resourceCounts: {},
-          totalResources: 0,
-          errors: ['Invalid file type. Please upload a JSON file'],
-          warnings: []
-        },
-        processingTime: Date.now() - startTime
-      }
+    // Detect file type
+    const fileType = validateExtendedFileType(file)
+    if (!fileType) {
+      return createErrorResult(
+        'Invalid file type. Please upload a JSON, CSV, TSV, or Excel file',
+        startTime
+      )
     }
 
     try {
-      const text = await file.text()
-      const data = JSON.parse(text)
-      const validation = validateUploadedFile(data)
+      let data: unknown
+      let validation: ValidationResult
+
+      // Process based on file type
+      if (fileType === 'json') {
+        // Standard JSON/FHIR processing
+        const text = await file.text()
+        data = JSON.parse(text)
+        validation = validateUploadedFile(data)
+      } else if (fileType === 'csv' || fileType === 'tsv') {
+        // CSV/TSV processing - convert to FHIR Bundle
+        const text = await file.text()
+        const csvResult = parseCSV(text, {
+          delimiter: fileType === 'tsv' ? '\t' : undefined
+        })
+
+        if (!csvResult.success || !csvResult.bundle) {
+          return {
+            success: false,
+            validation: {
+              isValid: false,
+              isFHIRBundle: false,
+              isIndividualResource: false,
+              resourceCounts: {},
+              totalResources: 0,
+              errors: csvResult.errors,
+              warnings: csvResult.warnings
+            },
+            processingTime: Date.now() - startTime,
+            sourceFileType: fileType
+          }
+        }
+
+        data = csvResult.bundle
+        validation = validateUploadedFile(data)
+        validation.warnings = [...validation.warnings, ...csvResult.warnings]
+
+        // Add info about conversion
+        if (csvResult.mappedFields.length > 0) {
+          validation.warnings.push(
+            `Converted ${csvResult.rowCount} rows with fields: ${csvResult.mappedFields.join(', ')}`
+          )
+        }
+      } else if (fileType === 'excel') {
+        // Excel files require server-side processing
+        // For now, return an error suggesting to export as CSV
+        return createErrorResult(
+          'Excel files (.xlsx/.xls) are not yet supported client-side. Please export your data as CSV and upload that instead.',
+          startTime
+        )
+      } else {
+        return createErrorResult('Unsupported file type', startTime)
+      }
+
+      // Apply de-identification if enabled
+      let deidentificationSummary = undefined
+      if (deidentifyEnabled && data && validation.isValid) {
+        if (validateFHIRBundle(data)) {
+          const deidentResult = deidentifyFHIRBundle(
+            data as unknown as Record<string, unknown>,
+            deidentificationOptions
+          )
+          data = deidentResult.data
+          deidentificationSummary = {
+            applied: true,
+            phiElementsProcessed: deidentResult.phiElementsProcessed,
+            modifiedFields: deidentResult.modifiedFields,
+            warnings: deidentResult.warnings
+          }
+          // Add de-identification warnings to validation
+          validation.warnings = [...validation.warnings, ...deidentResult.warnings]
+        } else if (validation.isIndividualResource) {
+          const deidentResult = deidentifyFHIRResource(
+            data as Record<string, unknown>,
+            deidentificationOptions
+          )
+          data = deidentResult.data
+          deidentificationSummary = {
+            applied: true,
+            phiElementsProcessed: deidentResult.phiElementsProcessed,
+            modifiedFields: deidentResult.modifiedFields,
+            warnings: deidentResult.warnings
+          }
+          validation.warnings = [...validation.warnings, ...deidentResult.warnings]
+        }
+      }
 
       return {
         success: validation.isValid,
-        data: validation.isValid ? data : undefined,
+        data: validation.isValid ? data as any : undefined,
         validation,
-        processingTime: Date.now() - startTime
+        processingTime: Date.now() - startTime,
+        sourceFileType: fileType,
+        deidentification: deidentificationSummary
       }
     } catch (error) {
-      return {
-        success: false,
-        validation: {
-          isValid: false,
-          isFHIRBundle: false,
-          isIndividualResource: false,
-          resourceCounts: {},
-          totalResources: 0,
-          errors: ['Failed to parse JSON file'],
-          warnings: []
-        },
-        processingTime: Date.now() - startTime
-      }
+      return createErrorResult(
+        `Failed to parse ${fileType.toUpperCase()} file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        startTime
+      )
     }
-  }, [maxFileSizeMB])
+  }, [maxFileSizeMB, deidentifyEnabled, deidentificationOptions])
 
   const handleFiles = useCallback(async (files: FileList) => {
     if (files.length === 0) return
@@ -128,10 +219,21 @@ export function FHIRUpload({ onFileProcessed, maxFileSizeMB = 10 }: FHIRUploadPr
     setLastResult(null)
   }, [])
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  const getFileTypeIcon = (fileType?: SupportedFileType) => {
+    if (fileType === 'csv' || fileType === 'tsv' || fileType === 'excel') {
+      return <FileSpreadsheet className="h-4 w-4" />
+    }
+    return <FileText className="h-4 w-4" />
+  }
+
+  const getFileTypeLabel = (fileType?: SupportedFileType) => {
+    switch (fileType) {
+      case 'csv': return 'CSV'
+      case 'tsv': return 'TSV'
+      case 'excel': return 'Excel'
+      case 'json': return 'JSON'
+      default: return 'Unknown'
+    }
   }
 
   return (
@@ -140,13 +242,36 @@ export function FHIRUpload({ onFileProcessed, maxFileSizeMB = 10 }: FHIRUploadPr
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            FHIR Bundle Upload
+            Healthcare Data Upload
           </CardTitle>
           <CardDescription>
-            Upload FHIR Bundle or individual Resource files (JSON format, max {maxFileSizeMB}MB)
+            Upload FHIR Bundle, CSV, or spreadsheet files (max {maxFileSizeMB}MB)
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* De-identification toggle */}
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-green-600" />
+              <Label htmlFor="deidentify-toggle" className="text-sm font-medium cursor-pointer">
+                De-identify data before processing
+              </Label>
+            </div>
+            <Switch
+              id="deidentify-toggle"
+              checked={deidentifyEnabled}
+              onCheckedChange={setDeidentifyEnabled}
+              aria-label="Toggle de-identification"
+            />
+          </div>
+
+          {deidentifyEnabled && (
+            <p className="text-xs text-muted-foreground px-3">
+              PHI (names, dates, identifiers, addresses) will be removed or masked before summarization.
+              No original data is stored.
+            </p>
+          )}
+
           <div
             className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
               dragActive
@@ -160,20 +285,22 @@ export function FHIRUpload({ onFileProcessed, maxFileSizeMB = 10 }: FHIRUploadPr
           >
             <input
               type="file"
-              accept=".json,application/json"
+              accept={getAcceptedFileTypes()}
               onChange={handleInputChange}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               disabled={processing}
+              title="Upload healthcare data file"
+              aria-label="Upload healthcare data file"
             />
 
             <div className="space-y-4">
               <Upload className="h-12 w-12 mx-auto text-gray-400" />
               <div>
                 <p className="text-lg font-medium">
-                  {processing ? 'Processing...' : 'Drop your FHIR file here'}
+                  {processing ? 'Processing...' : 'Drop your file here'}
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  or click to browse files
+                  Supports JSON (FHIR), CSV, TSV files
                 </p>
               </div>
               <Button variant="outline" disabled={processing}>
@@ -195,15 +322,21 @@ export function FHIRUpload({ onFileProcessed, maxFileSizeMB = 10 }: FHIRUploadPr
               )}
               Upload Results
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={clearResults}>
+            <Button variant="ghost" size="sm" onClick={clearResults} aria-label="Clear results">
               <X className="h-4 w-4" />
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant={lastResult.success ? 'default' : 'destructive'}>
                 {lastResult.success ? 'Valid' : 'Invalid'}
               </Badge>
+              {lastResult.sourceFileType && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  {getFileTypeIcon(lastResult.sourceFileType)}
+                  {getFileTypeLabel(lastResult.sourceFileType)}
+                </Badge>
+              )}
               {lastResult.validation.isFHIRBundle && (
                 <Badge variant="secondary">FHIR Bundle</Badge>
               )}
@@ -214,6 +347,25 @@ export function FHIRUpload({ onFileProcessed, maxFileSizeMB = 10 }: FHIRUploadPr
                 Processed in {lastResult.processingTime}ms
               </span>
             </div>
+
+            {/* De-identification results */}
+            {lastResult.deidentification?.applied && (
+              <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                  <Shield className="h-4 w-4" />
+                  <span className="text-sm font-medium">
+                    De-identification applied: {lastResult.deidentification.phiElementsProcessed} PHI elements processed
+                  </span>
+                </div>
+                {lastResult.deidentification.modifiedFields.length > 0 && (
+                  <p className="text-xs text-green-600 dark:text-green-500 mt-1">
+                    Modified: {lastResult.deidentification.modifiedFields.slice(0, 5).join(', ')}
+                    {lastResult.deidentification.modifiedFields.length > 5 &&
+                      ` and ${lastResult.deidentification.modifiedFields.length - 5} more`}
+                  </p>
+                )}
+              </div>
+            )}
 
             {lastResult.validation.totalResources > 0 && (
               <div>
