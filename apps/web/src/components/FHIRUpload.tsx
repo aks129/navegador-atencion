@@ -28,18 +28,9 @@ interface FHIRUploadProps {
   deidentificationOptions?: DeidentificationOptions
 }
 
-export function FHIRUpload({
-  onFileProcessed,
-  maxFileSizeMB = 10,
-  enableDeidentification: initialDeidentification = true,
-  deidentificationOptions
-}: FHIRUploadProps) {
-  const [dragActive, setDragActive] = useState(false)
-  const [processing, setProcessing] = useState(false)
-  const [deidentifyEnabled, setDeidentifyEnabled] = useState(initialDeidentification)
-  const [lastResult, setLastResult] = useState<FileUploadResult | null>(null)
-
-  const createErrorResult = (error: string, startTime: number): FileUploadResult => ({
+// Helper function outside component to avoid recreating on each render
+function createErrorResult(error: string, startTime: number): FileUploadResult {
+  return {
     success: false,
     validation: {
       isValid: false,
@@ -51,7 +42,19 @@ export function FHIRUpload({
       warnings: []
     },
     processingTime: Date.now() - startTime
-  })
+  }
+}
+
+export function FHIRUpload({
+  onFileProcessed,
+  maxFileSizeMB = 10,
+  enableDeidentification: initialDeidentification = true,
+  deidentificationOptions
+}: FHIRUploadProps) {
+  const [dragActive, setDragActive] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [deidentifyEnabled, setDeidentifyEnabled] = useState(initialDeidentification)
+  const [lastResult, setLastResult] = useState<FileUploadResult | null>(null)
 
   const handleFileProcessing = useCallback(async (file: File): Promise<FileUploadResult> => {
     const startTime = Date.now()
