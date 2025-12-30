@@ -6,3 +6,4 @@ export * from './clinical-types';
 export * from './resource-selector';
 export * from './deidentifier';
 export * from './csv-parser';
+export * from './ndjson-parser';

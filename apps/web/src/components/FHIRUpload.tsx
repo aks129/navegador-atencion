@@ -13,6 +13,7 @@ import {
   validateExtendedFileType,
   getAcceptedFileTypes,
   parseCSV,
+  parseNDJSON,
   deidentifyFHIRBundle,
   deidentifyFHIRResource,
   validateFHIRBundle
@@ -68,7 +69,7 @@ export function FHIRUpload({
     const fileType = validateExtendedFileType(file)
     if (!fileType) {
       return createErrorResult(
-        'Invalid file type. Please upload a JSON, CSV, TSV, or Excel file',
+        'Invalid file type. Please upload a JSON, NDJSON, CSV, TSV, or Excel file',
         startTime
       )
     }
@@ -83,6 +84,38 @@ export function FHIRUpload({
         const text = await file.text()
         data = JSON.parse(text)
         validation = validateUploadedFile(data)
+      } else if (fileType === 'ndjson') {
+        // NDJSON (Newline Delimited JSON) - FHIR Bulk Data format
+        const text = await file.text()
+        const ndjsonResult = parseNDJSON(text)
+
+        if (!ndjsonResult.success || !ndjsonResult.bundle) {
+          return {
+            success: false,
+            validation: {
+              isValid: false,
+              isFHIRBundle: false,
+              isIndividualResource: false,
+              resourceCounts: ndjsonResult.resourceTypes,
+              totalResources: ndjsonResult.resourceCount,
+              errors: ndjsonResult.errors,
+              warnings: ndjsonResult.warnings
+            },
+            processingTime: Date.now() - startTime,
+            sourceFileType: fileType
+          }
+        }
+
+        data = ndjsonResult.bundle
+        validation = validateUploadedFile(data)
+        validation.warnings = [...validation.warnings, ...ndjsonResult.warnings]
+
+        // Add info about conversion
+        if (ndjsonResult.resourceCount > 0) {
+          validation.warnings.push(
+            `Parsed ${ndjsonResult.resourceCount} resources from ${ndjsonResult.lineCount} lines`
+          )
+        }
       } else if (fileType === 'csv' || fileType === 'tsv') {
         // CSV/TSV processing - convert to FHIR Bundle
         const text = await file.text()
@@ -235,6 +268,7 @@ export function FHIRUpload({
       case 'tsv': return 'TSV'
       case 'excel': return 'Excel'
       case 'json': return 'JSON'
+      case 'ndjson': return 'NDJSON'
       default: return 'Unknown'
     }
   }
@@ -248,7 +282,7 @@ export function FHIRUpload({
             Healthcare Data Upload
           </CardTitle>
           <CardDescription>
-            Upload FHIR Bundle, CSV, or spreadsheet files (max {maxFileSizeMB}MB)
+            Upload FHIR Bundle, NDJSON, CSV, or spreadsheet files (max {maxFileSizeMB}MB)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -303,7 +337,7 @@ export function FHIRUpload({
                   {processing ? 'Processing...' : 'Drop your file here'}
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  Supports JSON (FHIR), CSV, TSV files
+                  Supports JSON (FHIR), NDJSON, CSV, TSV files
                 </p>
               </div>
               <Button variant="outline" disabled={processing}>

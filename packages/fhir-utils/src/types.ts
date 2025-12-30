@@ -37,7 +37,7 @@ export interface FileUploadResult {
   validation: ValidationResult;
   processingTime: number;
   /** Original file type that was uploaded */
-  sourceFileType?: 'json' | 'csv' | 'tsv' | 'excel';
+  sourceFileType?: 'json' | 'csv' | 'tsv' | 'excel' | 'ndjson';
   /** De-identification result if applied */
   deidentification?: DeidentificationSummary;
 }
@@ -53,7 +53,7 @@ export interface DeidentificationSummary {
   warnings: string[];
 }
 
-export type SupportedFileType = 'json' | 'csv' | 'tsv' | 'excel';
+export type SupportedFileType = 'json' | 'csv' | 'tsv' | 'excel' | 'ndjson';
 
 export interface FileTypeInfo {
   type: SupportedFileType;
@@ -68,6 +68,12 @@ export const SUPPORTED_FILE_TYPES: FileTypeInfo[] = [
     mimeTypes: ['application/json'],
     extensions: ['.json'],
     description: 'FHIR Bundle or Resource (JSON)'
+  },
+  {
+    type: 'ndjson',
+    mimeTypes: ['application/x-ndjson', 'application/ndjson'],
+    extensions: ['.ndjson', '.jsonl'],
+    description: 'Newline Delimited JSON (FHIR Bulk Data)'
   },
   {
     type: 'csv',

@@ -88,12 +88,23 @@ export function validateFileType(file: File): boolean {
 }
 
 /**
- * Validate file type for extended format support (JSON, CSV, Excel)
+ * Validate file type for extended format support (JSON, NDJSON, CSV, Excel)
  * Returns the detected file type or null if unsupported
  */
-export function validateExtendedFileType(file: File): 'json' | 'csv' | 'tsv' | 'excel' | null {
+export function validateExtendedFileType(file: File): 'json' | 'ndjson' | 'csv' | 'tsv' | 'excel' | null {
   const name = file.name.toLowerCase();
   const mimeType = file.type.toLowerCase();
+
+  // NDJSON (Newline Delimited JSON - FHIR Bulk Data format)
+  // Check this before JSON since .jsonl could be mistaken for JSON
+  if (
+    mimeType === 'application/x-ndjson' ||
+    mimeType === 'application/ndjson' ||
+    name.endsWith('.ndjson') ||
+    name.endsWith('.jsonl')
+  ) {
+    return 'ndjson';
+  }
 
   // JSON (FHIR Bundle/Resource)
   if (mimeType === 'application/json' || name.endsWith('.json')) {
@@ -132,5 +143,5 @@ export function validateExtendedFileType(file: File): 'json' | 'csv' | 'tsv' | '
  * Get accepted file types string for input element
  */
 export function getAcceptedFileTypes(): string {
-  return '.json,.csv,.tsv,.txt,.xlsx,.xls,application/json,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
+  return '.json,.ndjson,.jsonl,.csv,.tsv,.txt,.xlsx,.xls,application/json,application/x-ndjson,application/ndjson,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
 }
