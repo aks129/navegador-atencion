@@ -4,8 +4,8 @@ import { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Upload, FileText, AlertCircle, CheckCircle, X, Shield, FileSpreadsheet } from 'lucide-react'
 import {
   validateUploadedFile,
@@ -253,19 +253,19 @@ export function FHIRUpload({
         </CardHeader>
         <CardContent className="space-y-4">
           {/* De-identification toggle */}
-          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+            <Checkbox
+              id="deidentify-toggle"
+              checked={deidentifyEnabled}
+              onCheckedChange={(checked) => setDeidentifyEnabled(checked === true)}
+              aria-label="Toggle de-identification"
+            />
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-green-600" />
               <Label htmlFor="deidentify-toggle" className="text-sm font-medium cursor-pointer">
                 De-identify data before processing
               </Label>
             </div>
-            <Switch
-              id="deidentify-toggle"
-              checked={deidentifyEnabled}
-              onCheckedChange={setDeidentifyEnabled}
-              aria-label="Toggle de-identification"
-            />
           </div>
 
           {deidentifyEnabled && (
