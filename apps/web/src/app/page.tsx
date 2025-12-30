@@ -187,16 +187,42 @@ export default function Home() {
         persona
       }
 
+      const requestBody = JSON.stringify({
+        bundle: currentBundle,
+        options: updatedConfig
+      })
+
+      // Check payload size
+      const payloadSizeBytes = new Blob([requestBody]).size
+      const payloadSizeMB = payloadSizeBytes / (1024 * 1024)
+
+      if (payloadSizeMB > 4) {
+        setError({
+          error: `Bundle is too large (${payloadSizeMB.toFixed(1)}MB). Maximum size is ~4MB.`,
+          errorType: 'validation',
+          details: `The bundle contains ${currentBundle.entry?.length || 0} resources.`
+        })
+        setIsGenerating(false)
+        return
+      }
+
       const response = await fetch('/api/summarize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          bundle: currentBundle,
-          options: updatedConfig
-        })
+        body: requestBody
       })
+
+      // Handle 413 specifically
+      if (response.status === 413) {
+        setError({
+          error: 'Bundle is too large for the server to process.',
+          errorType: 'validation',
+          details: `The bundle contains ${currentBundle.entry?.length || 0} resources.`
+        })
+        return
+      }
 
       const data = await response.json()
 
@@ -243,16 +269,43 @@ export default function Home() {
     setError(null)
 
     try {
+      // Prepare the request body
+      const requestBody = JSON.stringify({
+        bundle: currentBundle,
+        options: promptConfig
+      })
+
+      // Check payload size (Vercel limit is ~4.5MB for serverless functions)
+      const payloadSizeBytes = new Blob([requestBody]).size
+      const payloadSizeMB = payloadSizeBytes / (1024 * 1024)
+
+      if (payloadSizeMB > 4) {
+        setError({
+          error: `Bundle is too large (${payloadSizeMB.toFixed(1)}MB). Please use a smaller bundle with fewer resources. Maximum size is ~4MB.`,
+          errorType: 'validation',
+          details: `The bundle contains ${currentBundle.entry?.length || 0} resources. Try filtering to the most relevant resources.`
+        })
+        setIsGenerating(false)
+        return
+      }
+
       const response = await fetch('/api/summarize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          bundle: currentBundle,
-          options: promptConfig
-        })
+        body: requestBody
       })
+
+      // Handle 413 specifically before trying to parse JSON
+      if (response.status === 413) {
+        setError({
+          error: 'Bundle is too large for the server to process. Please use a smaller bundle.',
+          errorType: 'validation',
+          details: `The bundle contains ${currentBundle.entry?.length || 0} resources.`
+        })
+        return
+      }
 
       const data = await response.json()
 

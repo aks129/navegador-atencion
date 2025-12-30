@@ -13,6 +13,15 @@ import type { FHIRBundle } from '@/types/fhir'
 import type { SummaryRequest, PersonaType, TemplateOptions } from '@plumly/summarizer'
 import type { DeidentificationOptions } from '@plumly/fhir-utils'
 
+// For Next.js App Router - set max duration for serverless function
+export const maxDuration = 60 // seconds
+
+// Runtime configuration
+export const runtime = 'nodejs'
+
+// Enable dynamic rendering (not static)
+export const dynamic = 'force-dynamic'
+
 interface RequestBody {
   bundle: FHIRBundle
   /** Raw CSV/TSV content for conversion */
