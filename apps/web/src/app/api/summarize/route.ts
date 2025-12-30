@@ -39,6 +39,7 @@ interface RequestBody {
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
+  console.log('[Summarize API] Request received')
 
   // Track de-identification for response metadata
   let deidentificationApplied = false
@@ -48,6 +49,9 @@ export async function POST(request: NextRequest) {
     const body: RequestBody = await request.json()
     const { csvContent, csvOptions, options = {} } = body
     let { bundle } = body
+
+    console.log('[Summarize API] Bundle received with', bundle?.entry?.length || 0, 'entries')
+    console.log('[Summarize API] API key configured:', !!process.env.ANTHROPIC_API_KEY)
 
     // Handle CSV input - convert to FHIR Bundle
     if (csvContent && !bundle) {
@@ -130,7 +134,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate summary using new ClaudeClient
+    console.log('[Summarize API] Calling Claude API...')
     const result = await claudeClient.summarize(summaryRequest)
+    console.log('[Summarize API] Summary generated successfully')
 
     const processingTime = Date.now() - startTime
 
