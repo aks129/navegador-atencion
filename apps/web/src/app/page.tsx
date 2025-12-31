@@ -13,8 +13,12 @@ import PromptConfiguration from '@/components/PromptConfiguration'
 import SummaryOutput from '@/components/SummaryOutput'
 import { FHIRBundle } from '@/types/fhir'
 import { SummarizationOptions } from '@/lib/claude-client'
-import { ResourceSelector } from '@plumly/fhir-utils'
+import { ResourceSelector, flattenFHIRBundle } from '@plumly/fhir-utils'
 import type { PersonaType, TemplateOptions } from '@plumly/summarizer'
+
+// Size threshold for applying flattening (in MB)
+const FLATTEN_THRESHOLD_MB = 2
+const MAX_PAYLOAD_MB = 4
 
 interface SummaryResult {
   summary: string
@@ -187,18 +191,49 @@ export default function Home() {
         persona
       }
 
-      const requestBody = JSON.stringify({
-        bundle: currentBundle,
+      // Check initial payload size and apply flattening if needed
+      let bundleToSend = currentBundle
+      let requestBody = JSON.stringify({
+        bundle: bundleToSend,
         options: updatedConfig
       })
 
-      // Check payload size
-      const payloadSizeBytes = new Blob([requestBody]).size
-      const payloadSizeMB = payloadSizeBytes / (1024 * 1024)
+      let payloadSizeBytes = new Blob([requestBody]).size
+      let payloadSizeMB = payloadSizeBytes / (1024 * 1024)
 
-      if (payloadSizeMB > 4) {
+      // Apply flattening for large bundles
+      if (payloadSizeMB > FLATTEN_THRESHOLD_MB) {
+        try {
+          const flattenResult = flattenFHIRBundle(currentBundle, {
+            deduplicateObservations: true,
+            maxResourcesPerType: 100,
+            observationDaysLimit: 365
+          })
+
+          bundleToSend = {
+            resourceType: 'Bundle',
+            type: 'collection',
+            total: flattenResult.bundle.total,
+            entry: flattenResult.bundle.resources.map(resource => ({
+              resource: resource as any
+            }))
+          } as FHIRBundle
+
+          requestBody = JSON.stringify({
+            bundle: bundleToSend,
+            options: updatedConfig
+          })
+
+          payloadSizeBytes = new Blob([requestBody]).size
+          payloadSizeMB = payloadSizeBytes / (1024 * 1024)
+        } catch (flattenError) {
+          console.error('[Summarize] Flattening failed:', flattenError)
+        }
+      }
+
+      if (payloadSizeMB > MAX_PAYLOAD_MB) {
         setError({
-          error: `Bundle is too large (${payloadSizeMB.toFixed(1)}MB). Maximum size is ~4MB.`,
+          error: `Bundle is too large (${payloadSizeMB.toFixed(1)}MB). Maximum size is ~${MAX_PAYLOAD_MB}MB.`,
           errorType: 'validation',
           details: `The bundle contains ${currentBundle.entry?.length || 0} resources.`
         })
@@ -269,21 +304,65 @@ export default function Home() {
     setError(null)
 
     try {
-      // Prepare the request body
-      const requestBody = JSON.stringify({
-        bundle: currentBundle,
+      // Check initial payload size
+      let bundleToSend = currentBundle
+      let requestBody = JSON.stringify({
+        bundle: bundleToSend,
         options: promptConfig
       })
 
-      // Check payload size (Vercel limit is ~4.5MB for serverless functions)
-      const payloadSizeBytes = new Blob([requestBody]).size
-      const payloadSizeMB = payloadSizeBytes / (1024 * 1024)
+      let payloadSizeBytes = new Blob([requestBody]).size
+      let payloadSizeMB = payloadSizeBytes / (1024 * 1024)
+      let wasFlattened = false
 
-      if (payloadSizeMB > 4) {
+      // If bundle is too large, apply flattening to reduce size
+      if (payloadSizeMB > FLATTEN_THRESHOLD_MB) {
+        console.log(`[Summarize] Bundle size ${payloadSizeMB.toFixed(2)}MB exceeds threshold, applying flattening...`)
+
+        try {
+          const flattenResult = flattenFHIRBundle(currentBundle, {
+            deduplicateObservations: true,
+            maxResourcesPerType: 100, // Limit resources per type
+            observationDaysLimit: 365 // Last year of observations
+          })
+
+          console.log(`[Summarize] Flattening reduced size by ${flattenResult.reductionPercent}%`)
+
+          // Convert flattened bundle back to FHIR-like structure for the API
+          // The API will use this reduced dataset
+          bundleToSend = {
+            resourceType: 'Bundle',
+            type: 'collection',
+            total: flattenResult.bundle.total,
+            entry: flattenResult.bundle.resources.map(resource => ({
+              resource: resource as any
+            }))
+          } as FHIRBundle
+
+          requestBody = JSON.stringify({
+            bundle: bundleToSend,
+            options: promptConfig
+          })
+
+          payloadSizeBytes = new Blob([requestBody]).size
+          payloadSizeMB = payloadSizeBytes / (1024 * 1024)
+          wasFlattened = true
+
+          console.log(`[Summarize] New payload size: ${payloadSizeMB.toFixed(2)}MB`)
+        } catch (flattenError) {
+          console.error('[Summarize] Flattening failed:', flattenError)
+          // Continue with original bundle if flattening fails
+        }
+      }
+
+      // Final size check
+      if (payloadSizeMB > MAX_PAYLOAD_MB) {
         setError({
-          error: `Bundle is too large (${payloadSizeMB.toFixed(1)}MB). Please use a smaller bundle with fewer resources. Maximum size is ~4MB.`,
+          error: `Bundle is still too large (${payloadSizeMB.toFixed(1)}MB) after optimization. Maximum size is ~${MAX_PAYLOAD_MB}MB.`,
           errorType: 'validation',
-          details: `The bundle contains ${currentBundle.entry?.length || 0} resources. Try filtering to the most relevant resources.`
+          details: wasFlattened
+            ? `Flattening was applied but the bundle still has too many resources. Try using a smaller dataset.`
+            : `The bundle contains ${currentBundle.entry?.length || 0} resources. Try filtering to the most relevant resources.`
         })
         setIsGenerating(false)
         return

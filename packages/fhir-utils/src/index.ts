@@ -7,3 +7,4 @@ export * from './resource-selector';
 export * from './deidentifier';
 export * from './csv-parser';
 export * from './ndjson-parser';
+export * from './fhir-flattener';
