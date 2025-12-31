@@ -193,17 +193,22 @@ export default function Home() {
       }
 
       // Check initial payload size and apply flattening if needed
-      let bundleToSend = currentBundle
       let requestBody = JSON.stringify({
-        bundle: bundleToSend,
+        bundle: currentBundle,
         options: updatedConfig
       })
 
       let payloadSizeBytes = new Blob([requestBody]).size
       let payloadSizeMB = payloadSizeBytes / (1024 * 1024)
 
-      // Apply flattening for large bundles
+      // If bundle is too large, flatten and use clinical text mode
+      // (Flattened resources aren't valid FHIR, so we must use text mode)
+      let useClinicalTextMode = false
+      let clinicalTextSummary = ''
+
       if (payloadSizeMB > FLATTEN_THRESHOLD_MB) {
+        console.log(`[Summarize] Bundle size ${payloadSizeMB.toFixed(2)}MB exceeds threshold, applying flattening...`)
+
         try {
           const flattenResult = flattenFHIRBundle(currentBundle, {
             deduplicateObservations: true,
@@ -211,41 +216,9 @@ export default function Home() {
             observationDaysLimit: 365
           })
 
-          bundleToSend = {
-            resourceType: 'Bundle',
-            type: 'collection',
-            total: flattenResult.bundle.total,
-            entry: flattenResult.bundle.resources.map(resource => ({
-              resource: resource as any
-            }))
-          } as FHIRBundle
+          console.log(`[Summarize] Flattening reduced size by ${flattenResult.reductionPercent}%`)
 
-          requestBody = JSON.stringify({
-            bundle: bundleToSend,
-            options: updatedConfig
-          })
-
-          payloadSizeBytes = new Blob([requestBody]).size
-          payloadSizeMB = payloadSizeBytes / (1024 * 1024)
-        } catch (flattenError) {
-          console.error('[Summarize] Flattening failed:', flattenError)
-        }
-      }
-
-      // If still too large after flattening, use clinical text summary mode
-      let useClinicalTextMode = false
-      let clinicalTextSummary = ''
-
-      if (payloadSizeMB > TEXT_SUMMARY_THRESHOLD_MB) {
-        console.log(`[Summarize] Payload ${payloadSizeMB.toFixed(2)}MB still too large, switching to clinical text mode...`)
-
-        try {
-          const flattenResult = flattenFHIRBundle(currentBundle, {
-            deduplicateObservations: true,
-            maxResourcesPerType: 50,
-            observationDaysLimit: 180
-          })
-
+          // Convert flattened bundle to clinical text (flattened resources aren't valid FHIR)
           clinicalTextSummary = flattenedBundleToText(flattenResult.bundle)
 
           const textSizeBytes = new Blob([clinicalTextSummary]).size
@@ -261,8 +234,8 @@ export default function Home() {
             })
             payloadSizeMB = textSizeMB
           }
-        } catch (textError) {
-          console.error('[Summarize] Clinical text conversion failed:', textError)
+        } catch (flattenError) {
+          console.error('[Summarize] Flattening failed:', flattenError)
         }
       }
 
@@ -352,62 +325,24 @@ export default function Home() {
       let payloadSizeMB = payloadSizeBytes / (1024 * 1024)
       let wasFlattened = false
 
-      // If bundle is too large, apply flattening to reduce size
+      // If bundle is too large, flatten and use clinical text mode
+      // (Flattened resources aren't valid FHIR, so we must use text mode)
+      let useClinicalTextMode = false
+      let clinicalTextSummary = ''
+
       if (payloadSizeMB > FLATTEN_THRESHOLD_MB) {
         console.log(`[Summarize] Bundle size ${payloadSizeMB.toFixed(2)}MB exceeds threshold, applying flattening...`)
 
         try {
           const flattenResult = flattenFHIRBundle(currentBundle, {
             deduplicateObservations: true,
-            maxResourcesPerType: 100, // Limit resources per type
-            observationDaysLimit: 365 // Last year of observations
+            maxResourcesPerType: 100,
+            observationDaysLimit: 365
           })
 
           console.log(`[Summarize] Flattening reduced size by ${flattenResult.reductionPercent}%`)
 
-          // Convert flattened bundle back to FHIR-like structure for the API
-          // The API will use this reduced dataset
-          bundleToSend = {
-            resourceType: 'Bundle',
-            type: 'collection',
-            total: flattenResult.bundle.total,
-            entry: flattenResult.bundle.resources.map(resource => ({
-              resource: resource as any
-            }))
-          } as FHIRBundle
-
-          requestBody = JSON.stringify({
-            bundle: bundleToSend,
-            options: promptConfig
-          })
-
-          payloadSizeBytes = new Blob([requestBody]).size
-          payloadSizeMB = payloadSizeBytes / (1024 * 1024)
-          wasFlattened = true
-
-          console.log(`[Summarize] New payload size: ${payloadSizeMB.toFixed(2)}MB`)
-        } catch (flattenError) {
-          console.error('[Summarize] Flattening failed:', flattenError)
-          // Continue with original bundle if flattening fails
-        }
-      }
-
-      // If still too large after flattening, use clinical text summary mode
-      let useClinicalTextMode = false
-      let clinicalTextSummary = ''
-
-      if (payloadSizeMB > TEXT_SUMMARY_THRESHOLD_MB && wasFlattened) {
-        console.log(`[Summarize] Payload ${payloadSizeMB.toFixed(2)}MB still too large, switching to clinical text mode...`)
-
-        try {
-          // Re-flatten with the original bundle to get the FlattenedBundle
-          const flattenResult = flattenFHIRBundle(currentBundle, {
-            deduplicateObservations: true,
-            maxResourcesPerType: 50, // Reduce further for text mode
-            observationDaysLimit: 180 // Last 6 months only
-          })
-
-          // Convert to plain text - much smaller than JSON
+          // Convert flattened bundle to clinical text (flattened resources aren't valid FHIR)
           clinicalTextSummary = flattenedBundleToText(flattenResult.bundle)
 
           const textSizeBytes = new Blob([clinicalTextSummary]).size
@@ -422,9 +357,11 @@ export default function Home() {
               options: promptConfig
             })
             payloadSizeMB = textSizeMB
+            wasFlattened = true
           }
-        } catch (textError) {
-          console.error('[Summarize] Clinical text conversion failed:', textError)
+        } catch (flattenError) {
+          console.error('[Summarize] Flattening failed:', flattenError)
+          // Continue with original bundle if flattening fails
         }
       }
 
