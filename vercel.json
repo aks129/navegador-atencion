@@ -3,7 +3,7 @@
   "outputDirectory": "apps/web/.next",
   "installCommand": "npm install",
   "functions": {
-    "apps/web/src/app/api/summarize/route.ts": {
+    "api/summarize": {
       "maxDuration": 60
     }
   }
