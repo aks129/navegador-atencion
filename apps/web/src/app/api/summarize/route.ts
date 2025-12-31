@@ -23,7 +23,9 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 interface RequestBody {
-  bundle: FHIRBundle
+  bundle?: FHIRBundle
+  /** Pre-flattened clinical text summary (for very large bundles) */
+  clinicalTextSummary?: string
   /** Raw CSV/TSV content for conversion */
   csvContent?: string
   /** CSV parsing options */
@@ -56,11 +58,62 @@ export async function POST(request: NextRequest) {
 
   try {
     const body: RequestBody = await request.json()
-    const { csvContent, csvOptions, options = {} } = body
+    const { csvContent, csvOptions, clinicalTextSummary, options = {} } = body
     let { bundle } = body
 
     console.log('[Summarize API] Bundle received with', bundle?.entry?.length || 0, 'entries')
+    console.log('[Summarize API] Clinical text summary provided:', !!clinicalTextSummary)
     console.log('[Summarize API] API key configured:', !!process.env.ANTHROPIC_API_KEY)
+
+    // Check API key early
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        {
+          error: 'Claude API key not configured',
+          errorType: 'configuration'
+        },
+        { status: 500 }
+      )
+    }
+
+    // Initialize Claude client
+    const claudeClient = new ClaudeClient(process.env.ANTHROPIC_API_KEY)
+
+    // Handle pre-flattened clinical text summary (for very large bundles)
+    if (clinicalTextSummary && !bundle) {
+      console.log('[Summarize API] Using clinical text summary mode')
+
+      // Map persona
+      const persona: PersonaType = options.persona ||
+        (options.targetAudience === 'provider' ? 'provider' :
+         options.targetAudience === 'payer' ? 'caregiver' : 'patient')
+
+      // Generate summary directly from clinical text
+      const result = await claudeClient.summarizeFromText(clinicalTextSummary, {
+        persona,
+        focusAreas: options.focusAreas
+      })
+
+      const processingTime = Date.now() - startTime
+
+      return NextResponse.json({
+        success: true,
+        summary: result.summary,
+        sections: result.sections,
+        metadata: {
+          ...result.metadata,
+          totalProcessingTime: processingTime,
+          endpoint: '/api/summarize',
+          inputMode: 'clinical-text-summary',
+          deidentification: {
+            applied: true,
+            note: 'Data was pre-flattened and de-identified on the client before transmission.'
+          },
+          dataRetention: 'none',
+          processingNote: 'All data was processed in-memory and discarded after summary generation.'
+        }
+      })
+    }
 
     // Handle CSV input - convert to FHIR Bundle
     if (csvContent && !bundle) {
@@ -78,7 +131,18 @@ export async function POST(request: NextRequest) {
       bundle = csvResult.bundle as FHIRBundle
     }
 
-    // Validate FHIR bundle
+    // Validate FHIR bundle - must exist at this point
+    if (!bundle) {
+      return NextResponse.json(
+        {
+          error: 'No FHIR Bundle provided',
+          errorType: 'validation',
+          details: 'Either bundle, csvContent, or clinicalTextSummary is required'
+        },
+        { status: 400 }
+      )
+    }
+
     const isValid = validateFHIRBundle(bundle)
     if (!isValid) {
       return NextResponse.json(
@@ -105,20 +169,6 @@ export async function POST(request: NextRequest) {
         modifiedFields: deidentResult.modifiedFields
       }
     }
-
-    // Check API key
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json(
-        {
-          error: 'Claude API key not configured',
-          errorType: 'configuration'
-        },
-        { status: 500 }
-      )
-    }
-
-    // Initialize Claude client
-    const claudeClient = new ClaudeClient(process.env.ANTHROPIC_API_KEY)
 
     // Process FHIR data for resource selection
     const resourceSelector = new ResourceSelector(bundle)

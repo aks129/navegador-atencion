@@ -13,12 +13,13 @@ import PromptConfiguration from '@/components/PromptConfiguration'
 import SummaryOutput from '@/components/SummaryOutput'
 import { FHIRBundle } from '@/types/fhir'
 import { SummarizationOptions } from '@/lib/claude-client'
-import { ResourceSelector, flattenFHIRBundle } from '@plumly/fhir-utils'
+import { ResourceSelector, flattenFHIRBundle, flattenedBundleToText } from '@plumly/fhir-utils'
 import type { PersonaType, TemplateOptions } from '@plumly/summarizer'
 
 // Size threshold for applying flattening (in MB)
-const FLATTEN_THRESHOLD_MB = 2
+const FLATTEN_THRESHOLD_MB = 1.5  // Lower threshold to flatten earlier
 const MAX_PAYLOAD_MB = 4
+const TEXT_SUMMARY_THRESHOLD_MB = 3  // If still over 3MB after flattening, use text summary
 
 interface SummaryResult {
   summary: string
@@ -231,6 +232,40 @@ export default function Home() {
         }
       }
 
+      // If still too large after flattening, use clinical text summary mode
+      let useClinicalTextMode = false
+      let clinicalTextSummary = ''
+
+      if (payloadSizeMB > TEXT_SUMMARY_THRESHOLD_MB) {
+        console.log(`[Summarize] Payload ${payloadSizeMB.toFixed(2)}MB still too large, switching to clinical text mode...`)
+
+        try {
+          const flattenResult = flattenFHIRBundle(currentBundle, {
+            deduplicateObservations: true,
+            maxResourcesPerType: 50,
+            observationDaysLimit: 180
+          })
+
+          clinicalTextSummary = flattenedBundleToText(flattenResult.bundle)
+
+          const textSizeBytes = new Blob([clinicalTextSummary]).size
+          const textSizeMB = textSizeBytes / (1024 * 1024)
+
+          console.log(`[Summarize] Clinical text size: ${textSizeMB.toFixed(2)}MB`)
+
+          if (textSizeMB < MAX_PAYLOAD_MB) {
+            useClinicalTextMode = true
+            requestBody = JSON.stringify({
+              clinicalTextSummary,
+              options: updatedConfig
+            })
+            payloadSizeMB = textSizeMB
+          }
+        } catch (textError) {
+          console.error('[Summarize] Clinical text conversion failed:', textError)
+        }
+      }
+
       if (payloadSizeMB > MAX_PAYLOAD_MB) {
         setError({
           error: `Bundle is too large (${payloadSizeMB.toFixed(1)}MB). Maximum size is ~${MAX_PAYLOAD_MB}MB.`,
@@ -240,6 +275,8 @@ export default function Home() {
         setIsGenerating(false)
         return
       }
+
+      console.log(`[Summarize] Sending request - mode: ${useClinicalTextMode ? 'clinical-text' : 'bundle'}, size: ${payloadSizeMB.toFixed(2)}MB`)
 
       const response = await fetch('/api/summarize', {
         method: 'POST',
@@ -355,6 +392,42 @@ export default function Home() {
         }
       }
 
+      // If still too large after flattening, use clinical text summary mode
+      let useClinicalTextMode = false
+      let clinicalTextSummary = ''
+
+      if (payloadSizeMB > TEXT_SUMMARY_THRESHOLD_MB && wasFlattened) {
+        console.log(`[Summarize] Payload ${payloadSizeMB.toFixed(2)}MB still too large, switching to clinical text mode...`)
+
+        try {
+          // Re-flatten with the original bundle to get the FlattenedBundle
+          const flattenResult = flattenFHIRBundle(currentBundle, {
+            deduplicateObservations: true,
+            maxResourcesPerType: 50, // Reduce further for text mode
+            observationDaysLimit: 180 // Last 6 months only
+          })
+
+          // Convert to plain text - much smaller than JSON
+          clinicalTextSummary = flattenedBundleToText(flattenResult.bundle)
+
+          const textSizeBytes = new Blob([clinicalTextSummary]).size
+          const textSizeMB = textSizeBytes / (1024 * 1024)
+
+          console.log(`[Summarize] Clinical text size: ${textSizeMB.toFixed(2)}MB`)
+
+          if (textSizeMB < MAX_PAYLOAD_MB) {
+            useClinicalTextMode = true
+            requestBody = JSON.stringify({
+              clinicalTextSummary,
+              options: promptConfig
+            })
+            payloadSizeMB = textSizeMB
+          }
+        } catch (textError) {
+          console.error('[Summarize] Clinical text conversion failed:', textError)
+        }
+      }
+
       // Final size check
       if (payloadSizeMB > MAX_PAYLOAD_MB) {
         setError({
@@ -367,6 +440,8 @@ export default function Home() {
         setIsGenerating(false)
         return
       }
+
+      console.log(`[Summarize] Sending request - mode: ${useClinicalTextMode ? 'clinical-text' : 'bundle'}, size: ${payloadSizeMB.toFixed(2)}MB`)
 
       const response = await fetch('/api/summarize', {
         method: 'POST',

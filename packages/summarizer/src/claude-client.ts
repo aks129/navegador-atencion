@@ -404,6 +404,120 @@ export class ClaudeClient {
     return { ...this.retryConfig };
   }
 
+  /**
+   * Summarize from pre-flattened clinical text (for very large bundles)
+   * This bypasses normal FHIR processing and generates summary directly from text
+   */
+  async summarizeFromText(
+    clinicalText: string,
+    options: {
+      persona?: PersonaType;
+      focusAreas?: string[];
+    } = {}
+  ): Promise<SummaryResponse> {
+    const startTime = Date.now();
+    const persona = options.persona || 'patient';
+
+    try {
+      const prompt = this.buildTextSummaryPrompt(clinicalText, persona, options.focusAreas);
+
+      // Rate limiting check
+      await this.enforceRateLimit();
+
+      const response = await this.anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 2500,
+        temperature: 0.3,
+        system: this.buildSystemPrompt(persona),
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      });
+
+      this.updateRateLimitInfo(response);
+
+      const content = response.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Expected text response from Claude');
+      }
+
+      const parsedResponse = this.parseStructuredResponse(content.text);
+
+      // Ensure metadata completeness
+      if (!parsedResponse.metadata) {
+        parsedResponse.metadata = {};
+      }
+      parsedResponse.metadata = {
+        persona,
+        sectionsGenerated: parsedResponse.sections?.map((s: any) => s.id) || [],
+        inputMode: 'clinical-text-summary',
+        ...parsedResponse.metadata
+      };
+
+      // Validate sections
+      if (Array.isArray(parsedResponse.sections)) {
+        parsedResponse.sections = parsedResponse.sections.map((section: any, index: number) => ({
+          id: section.id || `section-${index + 1}`,
+          title: section.title || `Section ${index + 1}`,
+          content: section.content || '',
+          confidence: typeof section.confidence === 'number' ? section.confidence : 0.8,
+          sources: section.sources || [],
+          claims: section.claims || [],
+          metadata: {
+            generatedAt: new Date().toISOString(),
+            persona,
+            template: 'text-summary',
+            processingTime: Date.now() - startTime,
+            ...section.metadata
+          }
+        }));
+      }
+
+      return {
+        summary: parsedResponse.summary || '',
+        sections: parsedResponse.sections || [],
+        metadata: {
+          ...parsedResponse.metadata,
+          processingTime: Date.now() - startTime,
+          timestamp: new Date().toISOString(),
+          templateId: 'text-summary',
+          templateVersion: '1.0.0'
+        }
+      };
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      const errorInfo = this.analyzeError(error);
+
+      const enhancedError = new Error(errorInfo.message);
+      (enhancedError as any).type = errorInfo.type;
+      (enhancedError as any).retryable = errorInfo.retryable;
+      (enhancedError as any).processingTime = processingTime;
+      (enhancedError as any).persona = persona;
+      (enhancedError as any).originalError = error;
+
+      throw enhancedError;
+    }
+  }
+
+  private buildTextSummaryPrompt(
+    clinicalText: string,
+    persona: PersonaType,
+    focusAreas?: string[]
+  ): string {
+    let prompt = `Please analyze the following clinical summary and provide a comprehensive health summary:\n\n${clinicalText}\n\n`;
+
+    if (focusAreas && focusAreas.length > 0) {
+      prompt += `Focus particularly on: ${focusAreas.join(', ')}\n\n`;
+    }
+
+    prompt += `Generate a summary appropriate for a ${persona === 'provider' ? 'healthcare provider' : persona === 'caregiver' ? 'caregiver' : 'patient'}.`;
+
+    return prompt;
+  }
+
   // Public method to test API connectivity
   public async testConnection(): Promise<{ success: boolean; latency: number; error?: string }> {
     const startTime = Date.now();
