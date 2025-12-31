@@ -82,37 +82,63 @@ export async function POST(request: NextRequest) {
     // Handle pre-flattened clinical text summary (for very large bundles)
     if (clinicalTextSummary && !bundle) {
       console.log('[Summarize API] Using clinical text summary mode')
+      console.log('[Summarize API] Clinical text length:', clinicalTextSummary.length, 'characters')
+
+      // Validate minimum text length
+      if (clinicalTextSummary.trim().length < 50) {
+        return NextResponse.json(
+          {
+            error: 'Clinical text summary is too short',
+            errorType: 'validation',
+            details: 'The flattened clinical data does not contain enough information to generate a summary. The NDJSON file may not contain supported FHIR resource types.'
+          },
+          { status: 400 }
+        )
+      }
 
       // Map persona
       const persona: PersonaType = options.persona ||
         (options.targetAudience === 'provider' ? 'provider' :
          options.targetAudience === 'payer' ? 'caregiver' : 'patient')
 
-      // Generate summary directly from clinical text
-      const result = await claudeClient.summarizeFromText(clinicalTextSummary, {
-        persona,
-        focusAreas: options.focusAreas
-      })
+      try {
+        // Generate summary directly from clinical text
+        const result = await claudeClient.summarizeFromText(clinicalTextSummary, {
+          persona,
+          focusAreas: options.focusAreas
+        })
 
-      const processingTime = Date.now() - startTime
+        const processingTime = Date.now() - startTime
 
-      return NextResponse.json({
-        success: true,
-        summary: result.summary,
-        sections: result.sections,
-        metadata: {
-          ...result.metadata,
-          totalProcessingTime: processingTime,
-          endpoint: '/api/summarize',
-          inputMode: 'clinical-text-summary',
-          deidentification: {
-            applied: true,
-            note: 'Data was pre-flattened and de-identified on the client before transmission.'
+        return NextResponse.json({
+          success: true,
+          summary: result.summary,
+          sections: result.sections,
+          metadata: {
+            ...result.metadata,
+            totalProcessingTime: processingTime,
+            endpoint: '/api/summarize',
+            inputMode: 'clinical-text-summary',
+            deidentification: {
+              applied: true,
+              note: 'Data was pre-flattened and de-identified on the client before transmission.'
+            },
+            dataRetention: 'none',
+            processingNote: 'All data was processed in-memory and discarded after summary generation.'
+          }
+        })
+      } catch (textError: any) {
+        console.error('[Summarize API] Clinical text summarization failed:', textError)
+        return NextResponse.json(
+          {
+            error: textError.message || 'Failed to generate summary from clinical text',
+            errorType: textError.type || 'unknown',
+            retryable: textError.retryable || false,
+            details: 'Error occurred while processing clinical text with Claude API'
           },
-          dataRetention: 'none',
-          processingNote: 'All data was processed in-memory and discarded after summary generation.'
-        }
-      })
+          { status: 500 }
+        )
+      }
     }
 
     // Handle CSV input - convert to FHIR Bundle
