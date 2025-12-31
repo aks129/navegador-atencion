@@ -151,6 +151,18 @@ export interface FlattenedDiagnosticReport {
   resultIds?: string[]
 }
 
+// Generic flattened resource for unsupported types
+export interface FlattenedGenericResource {
+  resourceType: string
+  id?: string
+  patientId?: string
+  date?: string
+  status?: string
+  code?: string
+  display?: string
+  text?: string
+}
+
 export type FlattenedResource =
   | FlattenedPatient
   | FlattenedObservation
@@ -161,6 +173,7 @@ export type FlattenedResource =
   | FlattenedAllergyIntolerance
   | FlattenedImmunization
   | FlattenedDiagnosticReport
+  | FlattenedGenericResource
 
 export interface FlattenedBundle {
   resourceType: 'Bundle'
@@ -651,6 +664,42 @@ function flattenDiagnosticReport(resource: Record<string, unknown>): FlattenedDi
   }
 }
 
+// Generic flattener for unsupported resource types
+function flattenGenericResource(resource: Record<string, unknown>): FlattenedGenericResource {
+  const resourceType = resource.resourceType as string
+  const coding = getFirstCoding(resource.code)
+
+  // Try to extract patient reference
+  const patientId = extractReferenceId(resource.subject) ||
+    extractReferenceId(resource.patient)
+
+  // Try to find a date
+  const date = formatDate(
+    resource.date ||
+    resource.effectiveDateTime ||
+    resource.recordedDate ||
+    resource.authoredOn ||
+    resource.issued ||
+    (resource.period as Record<string, unknown> | undefined)?.start
+  )
+
+  // Try to extract narrative text
+  const text = resource.text && typeof resource.text === 'object'
+    ? ((resource.text as Record<string, unknown>).div as string | undefined)?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200)
+    : undefined
+
+  return {
+    resourceType,
+    id: resource.id as string | undefined,
+    patientId,
+    date,
+    status: resource.status as string | undefined,
+    code: coding.code,
+    display: coding.display,
+    text
+  }
+}
+
 // Main flattening function for a single resource
 function flattenResource(resource: Record<string, unknown>): FlattenedResource | null {
   const resourceType = resource.resourceType as string
@@ -675,7 +724,8 @@ function flattenResource(resource: Record<string, unknown>): FlattenedResource |
     case 'DiagnosticReport':
       return flattenDiagnosticReport(resource)
     default:
-      return null // Unsupported resource type
+      // Use generic flattener for other resource types
+      return flattenGenericResource(resource)
   }
 }
 
@@ -955,6 +1005,35 @@ export function flattenedBundleToText(bundle: FlattenedBundle): string {
       if (proc.performedDate) line += ` (${proc.performedDate})`
       if (proc.status && proc.status !== 'completed') line += ` [${proc.status}]`
       lines.push(line)
+    }
+    lines.push('')
+  }
+
+  // Handle other resource types (generic)
+  const handledTypes = ['Patient', 'Condition', 'MedicationRequest', 'AllergyIntolerance', 'Observation', 'Immunization', 'Procedure']
+  for (const [type, resources] of Object.entries(byType)) {
+    if (handledTypes.includes(type)) continue
+    if (resources.length === 0) continue
+
+    lines.push(`## ${type}`)
+    for (const resource of resources.slice(0, 15)) { // Limit per type
+      const generic = resource as FlattenedGenericResource
+      let line = '- '
+      if (generic.display) {
+        line += generic.display
+      } else if (generic.code) {
+        line += generic.code
+      } else if (generic.text) {
+        line += generic.text.slice(0, 100)
+      } else {
+        line += type
+      }
+      if (generic.date) line += ` (${generic.date})`
+      if (generic.status) line += ` [${generic.status}]`
+      lines.push(line)
+    }
+    if (resources.length > 15) {
+      lines.push(`  ... and ${resources.length - 15} more ${type} resources`)
     }
     lines.push('')
   }
