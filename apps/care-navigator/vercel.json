@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npx turbo run build --filter=@plumly/care-navigator",
-  "outputDirectory": "apps/care-navigator/.next",
-  "installCommand": "npm install",
+  "buildCommand": "cd ../.. && npx turbo run build --filter=@plumly/care-navigator",
+  "outputDirectory": ".next",
+  "installCommand": "cd ../.. && npm install",
   "framework": "nextjs"
 }
