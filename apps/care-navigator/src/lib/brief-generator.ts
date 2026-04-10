@@ -2,7 +2,7 @@
 import type { FHIRBundle } from '@plumly/fhir-utils';
 import { deidentifyFHIRBundle, validateFHIRBundle } from '@plumly/fhir-utils';
 import { selectVisitPrepResources } from '@plumly/fhir-utils';
-import { generateBilingualBrief } from '@plumly/summarizer';
+import { generateBilingualBrief, generateBilingualBriefWithGroq } from '@plumly/summarizer';
 import type { BilingualBrief } from '@plumly/summarizer';
 
 interface GenerateOptions {
@@ -14,9 +14,11 @@ export async function generateVisitBrief(
   bundle: FHIRBundle,
   options: GenerateOptions = {}
 ): Promise<BilingualBrief> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY is not configured');
+  const groqKey = process.env.GROQ_API_KEY;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+
+  if (!groqKey && !anthropicKey) {
+    throw new Error('No AI API key configured. Set GROQ_API_KEY (free) or ANTHROPIC_API_KEY.');
   }
 
   // 1. Validate bundle
@@ -42,13 +44,16 @@ export async function generateVisitBrief(
     includeInactiveConditions: false,
   });
 
-  // 4. Generate bilingual brief
-  return generateBilingualBrief(
-    {
-      resourceData,
-      patientPreferredName: options.patientPreferredName,
-      upcomingEncounterDate: options.upcomingEncounterDate,
-    },
-    apiKey
-  );
+  // 4. Generate bilingual brief — prefer Groq (free) over Anthropic
+  const briefRequest = {
+    resourceData,
+    patientPreferredName: options.patientPreferredName,
+    upcomingEncounterDate: options.upcomingEncounterDate,
+  };
+
+  if (groqKey) {
+    return generateBilingualBriefWithGroq(briefRequest, groqKey);
+  }
+
+  return generateBilingualBrief(briefRequest, anthropicKey!);
 }

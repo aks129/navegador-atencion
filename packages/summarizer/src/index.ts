@@ -5,3 +5,4 @@ export * from './persona-templates';
 export * from './resource-processor';
 export * from './types';
 export * from './bilingual-brief';
+export * from './groq-brief';
