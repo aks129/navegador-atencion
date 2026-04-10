@@ -7,7 +7,7 @@ const nextConfig = {
   experimental: {
     // Needed for iron-session in App Router
     serverActions: {
-      allowedOrigins: ['localhost:3001'],
+      allowedOrigins: ['localhost:3001', '*.vercel.app'],
     },
   },
 };
