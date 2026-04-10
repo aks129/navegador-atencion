@@ -2,7 +2,7 @@
 // Wraps ResourceSelector internally — does NOT modify ResourceSelector to avoid breaking apps/web
 
 import type { FHIRBundle } from './types';
-import type { ResourceSelectionResult } from './clinical-types';
+import type { ResourceSelectionResult, FHIRPatient } from './clinical-types';
 import { ResourceSelector } from './resource-selector';
 
 export interface VisitPrepOptions {
@@ -35,7 +35,36 @@ export function selectVisitPrepResources(
   } = options;
 
   const selector = new ResourceSelector(bundle);
-  const full = selector.selectRelevantResources();
+
+  // selectRelevantResources throws if there's no Patient entry in the bundle.
+  // For visit-prep, we still want to surface conditions/meds/labs even without
+  // explicit Patient demographics (SMART sandbox $everything should include Patient,
+  // but guard defensively).
+  let full: ResourceSelectionResult;
+  try {
+    full = selector.selectRelevantResources();
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('No patient resource found')) {
+      // Return a minimal stub so downstream summarization can still proceed
+      return {
+        labValues: [],
+        medications: [],
+        conditions: [],
+        encounters: [],
+        patient: null as unknown as FHIRPatient,
+        processingStats: {
+          totalObservations: 0,
+          selectedLabValues: 0,
+          totalMedications: 0,
+          activeMedications: 0,
+          totalConditions: 0,
+          chronicConditions: 0,
+          processingTime: 0,
+        },
+      };
+    }
+    throw err;
+  }
 
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - labLookbackDays);

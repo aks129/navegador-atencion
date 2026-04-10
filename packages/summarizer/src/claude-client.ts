@@ -92,7 +92,9 @@ export class ClaudeClient {
     }
 
     if (!request.resourceData.patient) {
-      throw new Error('Patient data is required in resourceData');
+      // Patient may be absent from $everything bundles — log but don't throw;
+      // prompt templates guard against null patient inline.
+      console.warn('[ClaudeClient] resourceData.patient is null — brief will omit patient demographics');
     }
   }
 

@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const iss = searchParams.get('iss') ?? process.env.NEXT_PUBLIC_SMART_ISS ?? '';
   const launch = searchParams.get('launch') ?? undefined;
+  const locale = (searchParams.get('locale') ?? 'es') as 'en' | 'es';
 
   if (!iss) {
     return NextResponse.json({ error: 'Missing iss parameter' }, { status: 400 });
@@ -19,9 +20,10 @@ export async function GET(request: NextRequest) {
     const config = getSmartConfig({ iss, launch });
     const { url } = await buildAuthorizationUrl(config, pkce);
 
-    // Store PKCE in session before redirecting
+    // Store PKCE and locale in session before redirecting
     const session = await getSession();
     session.pkce = { codeVerifier: pkce.codeVerifier, state: pkce.state };
+    session.locale = locale;
     await session.save();
 
     return NextResponse.redirect(url);

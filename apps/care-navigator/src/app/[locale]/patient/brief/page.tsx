@@ -31,7 +31,8 @@ export default function BriefPage() {
         }
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error ?? 'Failed to generate brief');
+          const msg = data.details ? `${data.error ?? 'Failed to generate brief'}: ${data.details}` : (data.error ?? 'Failed to generate brief');
+          throw new Error(msg);
         }
         const data = await res.json();
         setBrief(data.brief);

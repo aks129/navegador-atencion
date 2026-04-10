@@ -187,7 +187,7 @@ export class PromptTemplateManager {
       case 'clinical-overview':
       case 'care-overview':
         dataElements.push(
-          `Patient: ${resourceData.patient.name?.[0]?.given?.join(' ')} ${resourceData.patient.name?.[0]?.family}`,
+          `Patient: ${resourceData.patient?.name?.[0]?.given?.join(' ') ?? ''} ${resourceData.patient?.name?.[0]?.family ?? 'Unknown'}`.trim(),
           `${resourceData.conditions.length} conditions`,
           `${resourceData.medications.filter(m => m.isActive).length} active medications`,
           `${resourceData.labValues.length} recent lab values`

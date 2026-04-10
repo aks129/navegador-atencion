@@ -27,12 +27,13 @@ export async function GET(request: NextRequest) {
   }
 
   const session = await getSession();
+  const sessionLocale = session.locale ?? 'es';
 
   // Validate state matches PKCE params
   if (!session.pkce || session.pkce.state !== state) {
     appendAuditEntry({ action: 'auth-failed', patientId: 'unknown', metadata: { reason: 'state_mismatch' } });
     return NextResponse.redirect(
-      new URL('/es/patient/launch?error=state_mismatch', request.url)
+      new URL(`/${sessionLocale}/patient/launch?error=state_mismatch`, request.url)
     );
   }
 
@@ -66,9 +67,8 @@ export async function GET(request: NextRequest) {
       metadata: { scope: tokenResponse.scope },
     });
 
-    // Detect locale from Accept-Language header, default to 'es'
-    const acceptLang = request.headers.get('accept-language') ?? '';
-    const locale = acceptLang.startsWith('en') ? 'en' : 'es';
+    // Use locale stored in session during launch (preserves user's language choice through OAuth redirect)
+    const locale = session.locale ?? 'es';
 
     return NextResponse.redirect(new URL(`/${locale}/patient/consent`, request.url));
   } catch (err) {

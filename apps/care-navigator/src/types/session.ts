@@ -14,4 +14,6 @@ export interface SessionData {
   optedOut?: boolean;
   /** Navigator demo session identifier */
   navigatorId?: string;
+  /** User's chosen locale — preserved through OAuth redirect */
+  locale?: 'en' | 'es';
 }

@@ -13,7 +13,7 @@ export default async function LaunchPage({ params, searchParams }: LaunchPagePro
   const errT = await getTranslations('errors');
 
   // Direct to our launch API — ISS is the sim URL with patient picker embedded
-  const launchUrl = `/api/auth/launch`;
+  const launchUrl = `/api/auth/launch?locale=${locale}`;
 
   const errorMessages: Record<string, string> = {
     state_mismatch: errT('auth'),
