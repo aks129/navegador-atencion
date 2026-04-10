@@ -41,3 +41,8 @@ export function appendAuditEntry(
 export function getAuditLog(limit = 100): AuditEntry[] {
   return [...auditLog].reverse().slice(0, limit);
 }
+
+/** Clear the audit log — intended for testing only */
+export function clearAuditLog(): void {
+  auditLog.length = 0;
+}

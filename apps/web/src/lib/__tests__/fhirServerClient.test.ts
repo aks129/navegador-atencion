@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   fetchPatientEverything,
   testConnection,
@@ -8,11 +8,12 @@ import {
 } from '../fhirServerClient'
 
 // Mock fetch globally
-global.fetch = jest.fn()
+const mockFetch = vi.fn()
+global.fetch = mockFetch as unknown as typeof fetch
 
 describe('fhirServerClient', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     clearCache()
   })
 
@@ -47,7 +48,7 @@ describe('fhirServerClient', () => {
     }
 
     it('should successfully fetch patient data', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => JSON.stringify(validBundle)
@@ -58,7 +59,7 @@ describe('fhirServerClient', () => {
       expect(result.success).toBe(true)
       expect(result.data).toEqual(validBundle)
       expect(result.fromCache).toBe(false)
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:8080/fhir/Patient/test-patient-123/$everything',
         expect.objectContaining({
           method: 'GET',
@@ -72,7 +73,7 @@ describe('fhirServerClient', () => {
 
     it('should return cached data on subsequent calls', async () => {
       // First call - fetch from server
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => JSON.stringify(validBundle)
@@ -86,11 +87,11 @@ describe('fhirServerClient', () => {
       expect(secondResult.success).toBe(true)
       expect(secondResult.fromCache).toBe(true)
       expect(secondResult.data).toEqual(validBundle)
-      expect(global.fetch).toHaveBeenCalledTimes(1) // Not called again
+      expect(mockFetch).toHaveBeenCalledTimes(1) // Not called again
     })
 
     it('should handle 401 authentication error', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 401,
         statusText: 'Unauthorized'
@@ -105,7 +106,7 @@ describe('fhirServerClient', () => {
     })
 
     it('should handle TLS/SSL certificate errors', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(
+      mockFetch.mockRejectedValueOnce(
         new Error('self signed certificate in certificate chain')
       )
 
@@ -117,7 +118,7 @@ describe('fhirServerClient', () => {
     })
 
     it('should handle network timeout', async () => {
-      (global.fetch as jest.Mock).mockImplementationOnce(() =>
+      mockFetch.mockImplementationOnce(() =>
         new Promise((_, reject) => {
           setTimeout(() => reject(new Error('AbortError')), 100)
         })
@@ -130,7 +131,7 @@ describe('fhirServerClient', () => {
     })
 
     it('should handle malformed JSON response', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => 'Not valid JSON {{'
@@ -149,7 +150,7 @@ describe('fhirServerClient', () => {
         data: []
       }
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => JSON.stringify(invalidBundle)
@@ -176,7 +177,7 @@ describe('fhirServerClient', () => {
         ]
       }
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => JSON.stringify(bundleWithInvalidEntry)
@@ -190,7 +191,7 @@ describe('fhirServerClient', () => {
     })
 
     it('should handle patient not found (404)', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
         statusText: 'Not Found'
@@ -230,7 +231,7 @@ describe('fhirServerClient', () => {
         ]
       }
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => JSON.stringify(bundleWithPHI)
@@ -259,7 +260,7 @@ describe('fhirServerClient', () => {
     })
 
     it('should include auth token when provided', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => JSON.stringify(validBundle)
@@ -272,7 +273,7 @@ describe('fhirServerClient', () => {
 
       await fetchPatientEverything(configWithAuth)
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           headers: expect.objectContaining({
@@ -292,7 +293,7 @@ describe('fhirServerClient', () => {
         }]
       }
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 503,
         statusText: 'Service Unavailable',
@@ -307,7 +308,7 @@ describe('fhirServerClient', () => {
     })
 
     it('should handle empty response', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => ''
@@ -342,7 +343,7 @@ describe('fhirServerClient', () => {
         format: ['json', 'xml']
       }
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: async () => capabilityStatement
@@ -352,14 +353,14 @@ describe('fhirServerClient', () => {
 
       expect(result.success).toBe(true)
       expect(result.version).toBe('4.0.1')
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:8080/fhir/metadata',
         expect.any(Object)
       )
     })
 
     it('should handle connection failure', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(
+      mockFetch.mockRejectedValueOnce(
         new Error('Network error')
       )
 
@@ -370,7 +371,7 @@ describe('fhirServerClient', () => {
     })
 
     it('should handle TLS errors in connection test', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(
+      mockFetch.mockRejectedValueOnce(
         new Error('SSL certificate problem')
       )
 
@@ -381,7 +382,7 @@ describe('fhirServerClient', () => {
     })
 
     it('should handle non-CapabilityStatement response', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: async () => ({
@@ -413,7 +414,7 @@ describe('fhirServerClient', () => {
       }
 
       // First fetch - from server
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => JSON.stringify(bundle)
@@ -425,7 +426,7 @@ describe('fhirServerClient', () => {
       clearCache()
 
       // Second fetch - should hit server again, not cache
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => JSON.stringify(bundle)
@@ -434,7 +435,7 @@ describe('fhirServerClient', () => {
       const result = await fetchPatientEverything(config)
 
       expect(result.fromCache).toBe(false)
-      expect(global.fetch).toHaveBeenCalledTimes(2)
+      expect(mockFetch).toHaveBeenCalledTimes(2)
     })
   })
 })

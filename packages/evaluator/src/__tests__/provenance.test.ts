@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals'
+import { describe, it, expect } from 'vitest'
 import { coverage, provenanceMissing, analyzeSummaryProvenance } from '../provenance'
 import { SummaryResult } from '../provenance'
 
@@ -123,7 +123,8 @@ describe('Provenance Analysis', () => {
   describe('coverage function', () => {
     it('should calculate coverage for section-based summary', () => {
       const result = coverage(mockSummaryWithSections)
-      expect(result).toBe(50) // 1 out of 2 sections has sources
+      // section-1 has 2 sentences (referenced), section-2 has 1 sentence (unreferenced) = 2/3 = 66.67%
+      expect(result).toBe(66.67)
     })
 
     it('should calculate coverage for claims-based summary', () => {
@@ -186,9 +187,10 @@ describe('Provenance Analysis', () => {
     it('should provide comprehensive analysis for section-based summary', () => {
       const analysis = analyzeSummaryProvenance(mockSummaryWithSections)
 
-      expect(analysis.coverage).toBe(50)
-      expect(analysis.totalSentences).toBe(2) // 2 sections
-      expect(analysis.referencedSentences).toBe(1) // 1 section with sources
+      // section-1: 2 sentences (referenced), section-2: 1 sentence (unreferenced)
+      expect(analysis.coverage).toBe(66.67)
+      expect(analysis.totalSentences).toBe(3)
+      expect(analysis.referencedSentences).toBe(2)
       expect(analysis.provenanceMissing).toHaveLength(1)
     })
 
@@ -237,8 +239,9 @@ describe('Provenance Analysis', () => {
       }
 
       const analysis = analyzeSummaryProvenance(testSummary)
-      expect(analysis.totalSentences).toBe(1) // Only sentences >10 chars counted
-      expect(analysis.provenanceMissing).toHaveLength(1)
+      // Sentence splitter: "First sentence", "Second sentence", "Third sentence" (all >10 chars); "Short." filtered (<10)
+      expect(analysis.totalSentences).toBe(3)
+      expect(analysis.provenanceMissing).toHaveLength(3) // no sources
     })
   })
 
@@ -256,7 +259,8 @@ describe('Provenance Analysis', () => {
 
       const analysis = analyzeSummaryProvenance(emptySummary)
       expect(analysis.coverage).toBe(0)
-      expect(analysis.totalSentences).toBe(3) // Falls back to plain summary
+      // Falls back to plain summary: 'Empty sections test' → 1 sentence
+      expect(analysis.totalSentences).toBe(1)
     })
 
     it('should handle sections without content', () => {
@@ -286,7 +290,9 @@ describe('Provenance Analysis', () => {
       }
 
       const analysis = analyzeSummaryProvenance(noContentSummary)
-      expect(analysis.totalSentences).toBe(2) // Falls back to plain summary
+      // Section has no content → allSentences empty → falls back to plain summary
+      // 'No content test' → 1 sentence (15 chars > 10)
+      expect(analysis.totalSentences).toBe(1)
     })
   })
 })

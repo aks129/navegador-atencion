@@ -147,10 +147,12 @@ export function analyzeSummaryProvenance(summary: SummaryResult): ProvenanceMetr
       const claimsBasedUnreferenced = Array.from(claimsWithoutRefs)
 
       // If we have claims data, prefer it over section-level analysis
+      const claimsTotal = claimsBasedReferenced.length + claimsBasedUnreferenced.length
+      const claimsCoverage = claimsTotal > 0
+        ? Math.round((claimsBasedReferenced.length / claimsTotal) * 10000) / 100
+        : 0
       return {
-        coverage: claimsBasedReferenced.length + claimsBasedUnreferenced.length > 0
-          ? (claimsBasedReferenced.length / (claimsBasedReferenced.length + claimsBasedUnreferenced.length)) * 100
-          : 0,
+        coverage: claimsCoverage,
         totalSentences: claimsBasedReferenced.length + claimsBasedUnreferenced.length,
         referencedSentences: claimsBasedReferenced.length,
         provenanceMissing: claimsBasedUnreferenced

@@ -74,6 +74,7 @@ export function detectMedicationOverlaps(segments: TimelineSegment[]): TimelineS
 
       if (hasOverlap) {
         overlaps.push(segment2.medicationId)
+        result[j].hasOverlap = true
         if (!result[j].overlapWith) result[j].overlapWith = []
         result[j].overlapWith!.push(segment1.medicationId)
       }

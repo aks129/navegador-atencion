@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from '@jest/globals'
+import { describe, it, expect, beforeEach } from 'vitest'
 import {
   computeReviewItems,
   analyzeLabs,
@@ -182,15 +182,19 @@ describe('reviewItemsAnalyzer', () => {
 
   describe('analyzeMedications', () => {
     it('should detect known medication interactions', () => {
+      const recentDate = new Date()
+      recentDate.setDate(recentDate.getDate() - 10) // 10 days ago, won't trigger adherence
       const medications = [
         createMockMedication({
           name: 'Aspirin',
           rxNormCode: '1191',
+          authoredDate: recentDate.toISOString(),
           source: { id: 'med-1', reference: 'MedicationRequest/med-1' }
         }),
         createMockMedication({
           name: 'Aspirin 325mg',
           rxNormCode: '1191', // Same RxNorm = duplicate
+          authoredDate: recentDate.toISOString(),
           source: { id: 'med-2', reference: 'MedicationRequest/med-2' }
         })
       ]
@@ -199,10 +203,10 @@ describe('reviewItemsAnalyzer', () => {
 
       expect(items).toHaveLength(2) // One interaction + one duplicate
 
-      const interaction = items.find(item => item.type === 'med-interaction')
-      expect(interaction).toBeDefined()
-      expect(interaction?.title).toBe('Duplicate Medication')
-      expect(interaction?.description).toContain('Multiple prescriptions for Aspirin')
+      const duplicate = items.find(item => item.title === 'Duplicate Medication')
+      expect(duplicate).toBeDefined()
+      expect(duplicate?.type).toBe('med-interaction')
+      expect(duplicate?.description).toContain('Multiple prescriptions for Aspirin')
     })
 
     it('should flag potential adherence issues', () => {

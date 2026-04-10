@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from '@jest/globals'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { detectMedicationOverlaps, segmentMedicationTimeline } from '../MedicationTimeline'
 import type { ProcessedMedication } from '@plumly/fhir-utils'
 

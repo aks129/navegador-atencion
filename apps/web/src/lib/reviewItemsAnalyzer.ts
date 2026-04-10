@@ -351,6 +351,8 @@ export function analyzeCareGaps(selection: ResourceSelectionResult): ReviewItem[
 
 // Main function to compute all review items
 export function computeReviewItems(selection: ResourceSelectionResult): ReviewItem[] {
+  if (!selection) return []
+
   const items: ReviewItem[] = []
 
   // Analyze different categories

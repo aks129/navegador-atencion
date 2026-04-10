@@ -1,14 +1,15 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { generateShareToken, verifyShareToken, isTokenExpired, getTokenExpiry } from '../shareTokens'
 
 // Mock crypto for consistent testing
-const mockHmac = {
-  update: jest.fn().mockReturnThis(),
-  digest: jest.fn().mockReturnValue('mock-signature')
-}
+const mockHmac = vi.hoisted(() => ({
+  update: vi.fn().mockReturnThis(),
+  digest: vi.fn().mockReturnValue('mock-signature')
+}))
 
-jest.mock('crypto', () => ({
-  createHmac: jest.fn().mockReturnValue(mockHmac)
+vi.mock('crypto', () => ({
+  default: { createHmac: vi.fn().mockReturnValue(mockHmac) },
+  createHmac: vi.fn().mockReturnValue(mockHmac)
 }))
 
 describe('shareTokens', () => {
@@ -31,9 +32,9 @@ describe('shareTokens', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     // Mock Date.now to ensure consistent timestamps
-    jest.spyOn(Date, 'now').mockReturnValue(1640995200000) // 2022-01-01T00:00:00.000Z
+    vi.spyOn(Date, 'now').mockReturnValue(1640995200000) // 2022-01-01T00:00:00.000Z
   })
 
   describe('generateShareToken', () => {
@@ -95,17 +96,12 @@ describe('shareTokens', () => {
     })
 
     it('should return null for expired token', () => {
-      // Mock Date.now to return a time after the token expires
-      const futureTime = 1640995200000 + (8 * 24 * 60 * 60 * 1000) // 8 days later
-      jest.spyOn(Date, 'now').mockReturnValueOnce(futureTime)
-
+      // Generate token at the original (mocked) time → expiry = original + 7 days
       const token = generateShareToken(mockData)
 
-      // Reset Date.now to original mock
-      jest.spyOn(Date, 'now').mockReturnValue(1640995200000)
-
-      // Now verify with the future time
-      jest.spyOn(Date, 'now').mockReturnValue(futureTime)
+      // Verify 8 days later (past the 7-day expiry)
+      const futureTime = 1640995200000 + (8 * 24 * 60 * 60 * 1000)
+      vi.spyOn(Date, 'now').mockReturnValue(futureTime)
       const verified = verifyShareToken(token)
 
       expect(verified).toBeNull()
@@ -138,7 +134,7 @@ describe('shareTokens', () => {
 
       // Mock time to be after expiry
       const futureTime = 1640995200000 + (8 * 24 * 60 * 60 * 1000) // 8 days later
-      jest.spyOn(Date, 'now').mockReturnValue(futureTime)
+      vi.spyOn(Date, 'now').mockReturnValue(futureTime)
 
       const expired = isTokenExpired(token)
       expect(expired).toBe(true)

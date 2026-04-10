@@ -8,7 +8,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "fhir": "^4.11.1"

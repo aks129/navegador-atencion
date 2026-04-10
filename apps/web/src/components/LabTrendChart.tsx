@@ -59,8 +59,8 @@ export function isValueOutOfRange(
 export function extractNumericValue(value: string | number): number | null {
   if (typeof value === 'number') return value
   if (typeof value === 'string') {
-    // Remove common prefixes and suffixes, extract number
-    const numMatch = value.match(/-?\d+\.?\d*/);
+    // Remove common prefixes and suffixes, extract number (handles leading decimal like .5)
+    const numMatch = value.match(/-?(?:\d+\.?\d*|\.\d+)/);
     return numMatch ? parseFloat(numMatch[0]) : null
   }
   return null
