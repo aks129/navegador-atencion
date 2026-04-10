@@ -1,0 +1,33 @@
+{
+  "name": "@plumly/equity-audit-harness",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vendor-agnostic equity audit harness: synthetic FHIR bundles + reproducible AI test runner",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "run-harness": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "run-harness": "node dist/cli.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@plumly/fhir-utils": "file:../fhir-utils"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.0.0",
+    "vitest": "^3.0.0"
+  }
+}
