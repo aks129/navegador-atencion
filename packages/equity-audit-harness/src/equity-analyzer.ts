@@ -30,11 +30,12 @@ function estimateGradeLevel(text: string): number | null {
 
 /** Detect output language via Spanish word ratio heuristic */
 function detectLanguage(text: string): 'en' | 'es' | 'unknown' {
+  // Only include high-confidence Spanish-only function words; exclude words shared with English
   const spanishWords = [
-    'de', 'la', 'el', 'en', 'es', 'los', 'las', 'su', 'sus', 'que',
-    'para', 'con', 'por', 'una', 'un', 'del', 'al', 'se', 'le', 'me',
-    'su', 'usted', 'médico', 'salud', 'pregunta', 'medicamento', 'traer',
-    'próxima', 'cita', 'visita', 'doctor',
+    'de', 'la', 'el', 'los', 'las', 'su', 'sus', 'que',
+    'para', 'con', 'por', 'una', 'del', 'al', 'se', 'le',
+    'usted', 'médico', 'salud', 'pregunta', 'medicamento', 'traer',
+    'próxima', 'cita', 'visita',
   ];
   const words = text.toLowerCase().split(/\s+/);
   const spanishCount = words.filter(w => spanishWords.includes(w)).length;
