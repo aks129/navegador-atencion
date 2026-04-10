@@ -15,7 +15,7 @@
     "subtitle": "Nos conectaremos de forma segura a sus expedientes médicos para preparar su resumen de visita.",
     "connect": "Conectar Ahora",
     "connecting": "Conectando...",
-    "sandbox": "Usando el servidor de prueba SMART Health IT",
+    "sandbox": "Seleccionará un paciente de prueba en el servidor SMART Health IT",
     "privacy": "Sus datos nunca se almacenan. Se usan solo para generar su resumen de visita.",
     "optOut": "¿Prefiere no conectar? Cancelar"
   },

@@ -13,9 +13,13 @@ export default async function LaunchPage({ params, searchParams }: LaunchPagePro
   const t = await getTranslations('launch');
   const errT = await getTranslations('errors');
 
-  const iss = process.env.NEXT_PUBLIC_SMART_ISS ?? 'https://launch.smarthealthit.org/v/r4/fhir';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://care-navigator-nu.vercel.app';
 
-  const launchUrl = `/api/auth/launch?iss=${encodeURIComponent(iss)}`;
+  // The SMART Health IT sandbox requires a launch context created by its launcher UI.
+  // Clicking Connect sends the user to the sandbox launcher, which redirects back to
+  // our /api/auth/launch with ?iss=...&launch=... populated.
+  const launchUri = `${appUrl}/api/auth/launch`;
+  const launchUrl = `https://launch.smarthealthit.org/?launch_uri=${encodeURIComponent(launchUri)}&fhir_version=r4`;
 
   const errorMessages: Record<string, string> = {
     state_mismatch: errT('auth'),

@@ -15,7 +15,7 @@
     "subtitle": "We'll securely connect to your health records to prepare your visit summary.",
     "connect": "Connect Now",
     "connecting": "Connecting...",
-    "sandbox": "Using SMART Health IT Sandbox",
+    "sandbox": "You'll select a test patient in the SMART Health IT Sandbox",
     "privacy": "Your data is never stored. It is used only to generate your visit summary.",
     "optOut": "Prefer not to connect? Cancel"
   },
