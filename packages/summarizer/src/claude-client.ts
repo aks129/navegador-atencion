@@ -172,20 +172,31 @@ export class ClaudeClient {
   }
 
   private analyzeError(error: any): { retryable: boolean; message: string; type: string } {
-    if (error?.error?.type) {
-      switch (error.error.type) {
+    // Anthropic SDK wraps the response body as error.error = { type: "error", error: { type: "...", message: "..." } }
+    // Try both the nested (SDK) form and the flat form.
+    const innerType: string | undefined =
+      error?.error?.error?.type   // SDK: error.error = { type: "error", error: { type: "authentication_error" } }
+      ?? error?.error?.type;      // flat / legacy form
+
+    const innerMessage: string | undefined =
+      error?.error?.error?.message
+      ?? error?.error?.message
+      ?? error?.message;
+
+    if (innerType) {
+      switch (innerType) {
         case 'rate_limit_error':
           return { retryable: true, message: 'Rate limit exceeded', type: 'rate_limit' };
         case 'overloaded_error':
           return { retryable: true, message: 'Claude API overloaded', type: 'capacity' };
         case 'api_error':
-          return { retryable: true, message: 'Internal API error', type: 'api_error' };
+          return { retryable: true, message: `Internal API error: ${innerMessage ?? ''}`, type: 'api_error' };
         case 'authentication_error':
-          return { retryable: false, message: 'Invalid API key', type: 'auth' };
+          return { retryable: false, message: `Invalid API key: ${innerMessage ?? 'check ANTHROPIC_API_KEY'}`, type: 'auth' };
         case 'invalid_request_error':
-          return { retryable: false, message: 'Invalid request format', type: 'invalid_request' };
+          return { retryable: false, message: `Invalid request: ${innerMessage ?? ''}`, type: 'invalid_request' };
         default:
-          return { retryable: true, message: error.error.message || 'Unknown API error', type: 'unknown' };
+          return { retryable: false, message: innerMessage || `Anthropic error type: ${innerType}`, type: 'unknown' };
       }
     }
 
@@ -193,6 +204,7 @@ export class ClaudeClient {
       return { retryable: true, message: 'Network connection error', type: 'network' };
     }
 
+    // Last resort: use the SDK error message directly so the raw reason is visible
     return { retryable: false, message: error?.message || 'Unknown error', type: 'unknown' };
   }
 

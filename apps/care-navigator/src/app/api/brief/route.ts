@@ -51,9 +51,13 @@ export async function POST() {
 
     return NextResponse.json({ success: true, brief });
   } catch (error) {
-    console.error('[Brief API] Error:', error);
+    // Log the full error object so Vercel logs show the real cause
+    console.error('[Brief API] Error:', error instanceof Error ? error.message : error);
+    if (error && typeof error === 'object' && 'error' in error) {
+      console.error('[Brief API] Raw API body:', JSON.stringify((error as any).error));
+    }
     return NextResponse.json(
-      { error: 'Failed to generate brief', details: String(error) },
+      { error: 'Failed to generate brief', details: String(error instanceof Error ? error.message : error) },
       { status: 500 }
     );
   }
