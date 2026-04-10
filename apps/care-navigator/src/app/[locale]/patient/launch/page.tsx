@@ -1,7 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/button';
 import { AppHeader } from '@/components/shared/AppHeader';
-
 interface LaunchPageProps {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ error?: string }>;
@@ -13,13 +12,8 @@ export default async function LaunchPage({ params, searchParams }: LaunchPagePro
   const t = await getTranslations('launch');
   const errT = await getTranslations('errors');
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://care-navigator-nu.vercel.app';
-
-  // The SMART Health IT sandbox requires a launch context created by its launcher UI.
-  // Clicking Connect sends the user to the sandbox launcher, which redirects back to
-  // our /api/auth/launch with ?iss=...&launch=... populated.
-  const launchUri = `${appUrl}/api/auth/launch`;
-  const launchUrl = `https://launch.smarthealthit.org/?launch_uri=${encodeURIComponent(launchUri)}&fhir_version=r4`;
+  // Direct to our launch API — ISS is the sim URL with patient picker embedded
+  const launchUrl = `/api/auth/launch`;
 
   const errorMessages: Record<string, string> = {
     state_mismatch: errT('auth'),
@@ -28,10 +22,27 @@ export default async function LaunchPage({ params, searchParams }: LaunchPagePro
     default: errT('generic'),
   };
 
+  const otherLocale = locale === 'es' ? 'en' : 'es';
+  const otherLocaleName = locale === 'es' ? 'English' : 'Español';
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <AppHeader showNav={false} />
-      <main className="mx-auto max-w-lg px-4 py-16 text-center">
+
+      {/* Language toggle */}
+      <div className="flex justify-end px-4 pt-3">
+        <a
+          href={`/${otherLocale}/patient/launch`}
+          className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50 transition-colors"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
+          </svg>
+          {otherLocaleName}
+        </a>
+      </div>
+
+      <main className="mx-auto max-w-lg px-4 py-12 text-center">
         {/* Hero icon */}
         <div className="mb-6 flex justify-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100">
