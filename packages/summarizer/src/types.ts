@@ -6,12 +6,20 @@ export type PersonaType = 'patient' | 'provider' | 'caregiver' | 'patient-es';
 // --- Bilingual visit-prep brief types ---
 
 export interface VisitPrepBrief {
+  /** Brief statement of why the patient is coming in (1 sentence) */
+  visitPurpose?: string;
   /** 1-paragraph overview of the patient's current health status */
   overview: string;
   /** Exactly 3 questions to ask the doctor at the upcoming visit */
   questionsForDoctor: string[];
+  /** Up to 3 active medications to confirm or discuss with the doctor */
+  currentMedsToConfirm?: string[];
+  /** Up to 3 recent or notable lab results to review with the doctor */
+  labsToReview?: string[];
   /** Exactly 3 items to bring or prepare for the visit */
   bringChecklist: string[];
+  /** Any urgent concern requiring immediate attention — omit if none */
+  urgentConcerns?: string;
   language: 'en' | 'es';
   readingLevel?: string;
 }

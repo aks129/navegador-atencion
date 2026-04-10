@@ -54,9 +54,13 @@ const EN_SYSTEM = `You are a healthcare assistant preparing a concise visit summ
 Return ONLY valid JSON — no markdown, no explanation outside JSON.
 Schema:
 {
+  "visitPurpose": "string — 1 sentence: main reason for this upcoming visit based on conditions/encounters, or null if unknown",
   "overview": "string — 2-3 sentence summary of current health status in plain 8th-grade English",
   "questionsForDoctor": ["string", "string", "string"],
-  "bringChecklist": ["string", "string", "string"]
+  "currentMedsToConfirm": ["string (active medication name + dose, up to 3)"],
+  "labsToReview": ["string (lab name + value + flag if abnormal, up to 3 notable results)"],
+  "bringChecklist": ["string", "string", "string"],
+  "urgentConcerns": "string — only if there is a critically abnormal value or urgent safety concern, otherwise null"
 }`;
 
 const ES_SYSTEM = `Eres un asistente de salud preparando un resumen de visita para un paciente hispanohablante.
@@ -64,9 +68,13 @@ Responde SOLO con JSON válido — sin markdown ni texto fuera del JSON.
 Usa el registro de "Usted". Escribe a nivel de 6° grado de primaria.
 Esquema:
 {
+  "visitPurpose": "cadena — 1 oración: motivo principal de esta visita según las condiciones/encuentros, o null si desconocido",
   "overview": "cadena — resumen de 2-3 oraciones del estado de salud actual en español sencillo",
   "questionsForDoctor": ["cadena", "cadena", "cadena"],
-  "bringChecklist": ["cadena", "cadena", "cadena"]
+  "currentMedsToConfirm": ["cadena (nombre del medicamento activo + dosis, hasta 3)"],
+  "labsToReview": ["cadena (nombre del laboratorio + valor + indicador si es anormal, hasta 3 resultados notables)"],
+  "bringChecklist": ["cadena", "cadena", "cadena"],
+  "urgentConcerns": "cadena — solo si hay un valor críticamente anormal o preocupación urgente de seguridad, de lo contrario null"
 }`;
 
 function makeUserPrompt(context: string, lang: 'en' | 'es', request: BilingualBriefRequest): string {
@@ -94,6 +102,8 @@ const EN_FALLBACK: Omit<VisitPrepBrief, 'language' | 'readingLevel'> = {
     'Are there any changes to my medications I should know about?',
     'What should I focus on before my next visit?',
   ],
+  currentMedsToConfirm: [],
+  labsToReview: [],
   bringChecklist: [
     'Bring a list of all medications (including vitamins and supplements)',
     'Bring your insurance card and photo ID',
@@ -108,6 +118,8 @@ const ES_FALLBACK: Omit<VisitPrepBrief, 'language' | 'readingLevel'> = {
     '¿Hay algún cambio en mis medicamentos que deba saber?',
     '¿En qué debo enfocarme antes de mi próxima visita?',
   ],
+  currentMedsToConfirm: [],
+  labsToReview: [],
   bringChecklist: [
     'Traiga una lista de todos sus medicamentos (incluyendo vitaminas y suplementos)',
     'Traiga su tarjeta de seguro médico e identificación con foto',
@@ -124,19 +136,46 @@ function parseGroqResponse(
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return fallback;
     const parsed = JSON.parse(jsonMatch[0]);
+
     const questions = Array.isArray(parsed.questionsForDoctor)
       ? parsed.questionsForDoctor.slice(0, 3).map(String)
       : fallback.questionsForDoctor;
     const checklist = Array.isArray(parsed.bringChecklist)
       ? parsed.bringChecklist.slice(0, 3).map(String)
       : fallback.bringChecklist;
-    // Pad to 3 if model returned fewer
+    const meds: string[] = Array.isArray(parsed.currentMedsToConfirm)
+      ? parsed.currentMedsToConfirm.slice(0, 3).map(String).filter((s: string) => s.trim())
+      : [];
+    const labs: string[] = Array.isArray(parsed.labsToReview)
+      ? parsed.labsToReview.slice(0, 3).map(String).filter((s: string) => s.trim())
+      : [];
+
+    // Pad questions/checklist to 3 if model returned fewer
     while (questions.length < 3) questions.push(fallback.questionsForDoctor[questions.length]);
     while (checklist.length < 3) checklist.push(fallback.bringChecklist[checklist.length]);
+
+    // visitPurpose: accept string, reject 'null'/'none'/empty
+    const rawPurpose = parsed.visitPurpose;
+    const visitPurpose =
+      typeof rawPurpose === 'string' && rawPurpose.toLowerCase() !== 'null' && rawPurpose.trim()
+        ? rawPurpose.trim()
+        : undefined;
+
+    // urgentConcerns: only keep if non-null and meaningful
+    const rawUrgent = parsed.urgentConcerns;
+    const urgentConcerns =
+      typeof rawUrgent === 'string' && rawUrgent.toLowerCase() !== 'null' && rawUrgent.trim()
+        ? rawUrgent.trim()
+        : undefined;
+
     return {
+      visitPurpose,
       overview: typeof parsed.overview === 'string' ? parsed.overview : fallback.overview,
       questionsForDoctor: questions,
+      currentMedsToConfirm: meds,
+      labsToReview: labs,
       bringChecklist: checklist,
+      urgentConcerns,
     };
   } catch {
     return fallback;
@@ -185,8 +224,8 @@ export async function generateBilingualBriefWithGroq(
   ] as string[];
 
   return {
-    en: { ...enData, language: 'en', readingLevel: '8th grade (English)' },
-    es: { ...esData, language: 'es', readingLevel: '6th grade (Spanish)' },
+    en: { ...enData, language: 'en' as const, readingLevel: '8th grade (English)' },
+    es: { ...esData, language: 'es' as const, readingLevel: '6th grade (Spanish)' },
     metadata: {
       templateId: 'groq-bilingual-visit-prep-v1',
       processingTime: Date.now() - startTime,

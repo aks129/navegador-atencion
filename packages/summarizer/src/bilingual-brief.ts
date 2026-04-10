@@ -5,8 +5,8 @@ import { ClaudeClient } from './claude-client';
 import type { BilingualBrief, BilingualBriefRequest, VisitPrepBrief, SummaryResponse } from './types';
 
 const VISIT_PREP_TEMPLATE_OPTIONS = {
-  includeSections: ['patient-overview', 'visit-questions', 'bring-checklist'],
-  excludeSections: ['clinical-recommendations', 'lab-analysis', 'medication-review'],
+  includeSections: ['patient-overview', 'visit-questions', 'bring-checklist', 'medication-review', 'lab-analysis'],
+  excludeSections: ['clinical-recommendations'],
 };
 
 /**
@@ -22,6 +22,8 @@ function mapToVisitPrepBrief(response: SummaryResponse, language: 'en' | 'es'): 
   const overviewSection = findSection('patient-overview') ?? findSection('health summary') ?? findSection('resumen');
   const questionsSection = findSection('visit-questions') ?? findSection('question') ?? findSection('pregunta');
   const checklistSection = findSection('bring-checklist') ?? findSection('bring') ?? findSection('traer') ?? findSection('preparar');
+  const medsSection = findSection('medication-review') ?? findSection('medications') ?? findSection('medicamentos');
+  const labsSection = findSection('lab-analysis') ?? findSection('labs') ?? findSection('laboratorio');
 
   const overview = overviewSection?.content ?? response.summary ?? '';
 
@@ -69,6 +71,8 @@ function mapToVisitPrepBrief(response: SummaryResponse, language: 'en' | 'es'): 
   return {
     overview,
     questionsForDoctor: extractListItems(questionsSection?.content, 3, fallbackQ),
+    currentMedsToConfirm: medsSection ? extractListItems(medsSection.content, 3, []) : [],
+    labsToReview: labsSection ? extractListItems(labsSection.content, 3, []) : [],
     bringChecklist: extractListItems(checklistSection?.content, 3, fallbackC),
     language,
     readingLevel: language === 'es' ? '6th grade (Spanish)' : '8th grade (English)',
@@ -104,7 +108,9 @@ export async function generateBilingualBrief(
           `CRITICAL: Structure your response with exactly these sections:\n` +
           `1. Section id "patient-overview": One paragraph (3-4 sentences) about the patient's current health status.\n` +
           `2. Section id "visit-questions": Exactly 3 numbered questions for the patient to ask their doctor at the upcoming visit.\n` +
-          `3. Section id "bring-checklist": Exactly 3 numbered items the patient should bring or prepare for the visit.\n` +
+          `3. Section id "medication-review": Up to 3 active medications the patient should confirm with their doctor (name + dose). Omit section if no active medications.\n` +
+          `4. Section id "lab-analysis": Up to 3 recent or notable lab results the patient should discuss (name + value + flag if abnormal). Omit section if no labs.\n` +
+          `5. Section id "bring-checklist": Exactly 3 numbered items the patient should bring or prepare for the visit.\n` +
           `Write at an 8th grade reading level. Use plain English. Do not use medical jargon without explaining it.`,
       },
       abTestVariant: request.abTestVariant,
@@ -120,7 +126,9 @@ export async function generateBilingualBrief(
           `Estructura tu respuesta con exactamente estas secciones:\n` +
           `1. Section id "patient-overview": Un párrafo (3-4 oraciones) sobre el estado de salud actual del paciente.\n` +
           `2. Section id "visit-questions": Exactamente 3 preguntas numeradas que el paciente debe hacerle a su médico en la próxima visita.\n` +
-          `3. Section id "bring-checklist": Exactamente 3 cosas numeradas que el paciente debe traer o preparar para la visita.\n` +
+          `3. Section id "medication-review": Hasta 3 medicamentos activos que el paciente debe confirmar con su médico (nombre + dosis). Omitir sección si no hay medicamentos activos.\n` +
+          `4. Section id "lab-analysis": Hasta 3 resultados de laboratorio recientes o notables que el paciente debe discutir (nombre + valor + indicador si es anormal). Omitir sección si no hay laboratorios.\n` +
+          `5. Section id "bring-checklist": Exactamente 3 cosas numeradas que el paciente debe traer o preparar para la visita.\n` +
           `Escribe a un nivel de lectura de 6° grado. Usa lenguaje sencillo. No uses términos médicos sin explicarlos.`,
       },
       abTestVariant: request.abTestVariant,
