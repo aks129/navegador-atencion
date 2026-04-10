@@ -1,0 +1,109 @@
+{
+  "nav": {
+    "appName": "Navegador de Salud",
+    "patient": "Portal del Paciente",
+    "navigator": "Equipo de Cuidado",
+    "logout": "Cerrar Sesión"
+  },
+  "language": {
+    "en": "English",
+    "es": "Español",
+    "toggle": "Cambiar idioma"
+  },
+  "launch": {
+    "title": "Conecte Sus Expedientes Médicos",
+    "subtitle": "Nos conectaremos de forma segura a sus expedientes médicos para preparar su resumen de visita.",
+    "connect": "Conectar Ahora",
+    "connecting": "Conectando...",
+    "sandbox": "Usando el servidor de prueba SMART Health IT",
+    "privacy": "Sus datos nunca se almacenan. Se usan solo para generar su resumen de visita.",
+    "optOut": "¿Prefiere no conectar? Cancelar"
+  },
+  "consent": {
+    "title": "Antes de Empezar",
+    "subtitle": "Por favor revise cómo usamos su información de salud.",
+    "points": {
+      "1": "Leemos sus expedientes médicos del sistema de su proveedor de salud.",
+      "2": "Su información se usa únicamente para crear su resumen de visita.",
+      "3": "No guardamos sus datos médicos en nuestros servidores.",
+      "4": "Usted puede retirarse en cualquier momento."
+    },
+    "source": "Conectado a:",
+    "agree": "Acepto — Ver Mi Resumen",
+    "decline": "No, Gracias"
+  },
+  "brief": {
+    "title": "Su Resumen de Visita",
+    "subtitle": "Preparado para su próxima cita",
+    "overview": "Su Salud Hoy",
+    "questions": "Preguntas para Su Médico",
+    "checklist": "Qué Traer a Su Cita",
+    "sources": "Fuente",
+    "lastUpdated": "Última actualización",
+    "share": "Compartir Resumen",
+    "print": "Imprimir",
+    "notMedicalAdvice": "Este resumen es solo informativo. Siempre siga las indicaciones de su médico.",
+    "optOut": "Dejar de recibir resúmenes",
+    "loading": "Preparando su resumen...",
+    "error": "Tuvimos un problema cargando su resumen. Por favor intente de nuevo.",
+    "retry": "Intentar de Nuevo"
+  },
+  "optOut": {
+    "title": "Dejar de Recibir Resúmenes",
+    "message": "Ha elegido no recibir resúmenes de visita. Puede reconectarse en cualquier momento.",
+    "confirm": "Sí, Cancelar Suscripción",
+    "cancel": "Cancelar",
+    "done": "Ha cancelado su suscripción exitosamente."
+  },
+  "navigator": {
+    "title": "Panel del Equipo de Cuidado",
+    "workQueue": "Cola de Trabajo",
+    "patients": "Pacientes",
+    "referrals": "Referencias",
+    "totalPatients": "Total de Pacientes",
+    "briefsSent": "Resúmenes Enviados",
+    "pendingOutreach": "Alcance Pendiente",
+    "referralsOpen": "Referencias Abiertas",
+    "patient": {
+      "name": "Paciente",
+      "dob": "Fecha de Nacimiento",
+      "language": "Idioma",
+      "briefStatus": "Estado del Resumen",
+      "lastContact": "Último Contacto",
+      "actions": "Acciones"
+    },
+    "briefStatus": {
+      "pending": "Pendiente",
+      "sent": "Enviado",
+      "viewed": "Visto",
+      "error": "Error"
+    },
+    "outreach": {
+      "title": "Alcance",
+      "script": "Guión de Llamada",
+      "sendSMS": "Enviar Recordatorio SMS",
+      "phone": "Número de Teléfono",
+      "send": "Enviar (Simulación)",
+      "sending": "Enviando...",
+      "sent": "SMS en Cola",
+      "scriptContent": "Hola {name}, le recordamos su próxima cita. Hemos preparado un resumen de salud para ayudarle a prepararse. Puede verlo en: {link}"
+    },
+    "referral": {
+      "title": "Referencia",
+      "specialist": "Especialista",
+      "status": "Estado",
+      "date": "Fecha",
+      "pending": "Pendiente",
+      "scheduled": "Programada",
+      "completed": "Completada",
+      "unknown": "Desconocido"
+    }
+  },
+  "errors": {
+    "generic": "Algo salió mal. Por favor intente de nuevo.",
+    "auth": "La autenticación falló. Por favor reconéctese.",
+    "fhir": "No se pudieron cargar los expedientes médicos.",
+    "brief": "No se pudo generar su resumen. Por favor intente de nuevo.",
+    "sms": "No se pudo enviar el SMS. Por favor intente de nuevo."
+  }
+}

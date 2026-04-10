@@ -8,3 +8,4 @@ export * from './deidentifier';
 export * from './csv-parser';
 export * from './ndjson-parser';
 export * from './fhir-flattener';
+export * from './visit-prep-selector';

@@ -4,3 +4,4 @@ export * from './prompt-templates';
 export * from './persona-templates';
 export * from './resource-processor';
 export * from './types';
+export * from './bilingual-brief';

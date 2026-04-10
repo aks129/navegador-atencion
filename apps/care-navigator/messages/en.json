@@ -1,0 +1,109 @@
+{
+  "nav": {
+    "appName": "Care Navigator",
+    "patient": "Patient Portal",
+    "navigator": "Care Team",
+    "logout": "Sign Out"
+  },
+  "language": {
+    "en": "English",
+    "es": "Español",
+    "toggle": "Switch language"
+  },
+  "launch": {
+    "title": "Connect to Your Health Records",
+    "subtitle": "We'll securely connect to your health records to prepare your visit summary.",
+    "connect": "Connect Now",
+    "connecting": "Connecting...",
+    "sandbox": "Using SMART Health IT Sandbox",
+    "privacy": "Your data is never stored. It is used only to generate your visit summary.",
+    "optOut": "Prefer not to connect? Cancel"
+  },
+  "consent": {
+    "title": "Before We Begin",
+    "subtitle": "Please review how we use your health information.",
+    "points": {
+      "1": "We read your health records from your provider's system.",
+      "2": "Your information is used only to create your visit summary.",
+      "3": "We do not store your medical data on our servers.",
+      "4": "You can opt out at any time."
+    },
+    "source": "Connected to:",
+    "agree": "I Agree — Show My Summary",
+    "decline": "No Thanks"
+  },
+  "brief": {
+    "title": "Your Visit Summary",
+    "subtitle": "Prepared for your upcoming appointment",
+    "overview": "Your Health Today",
+    "questions": "Questions to Ask Your Doctor",
+    "checklist": "Bring to Your Appointment",
+    "sources": "Source",
+    "lastUpdated": "Last updated",
+    "share": "Share Summary",
+    "print": "Print",
+    "notMedicalAdvice": "This summary is for informational purposes only. Always follow your doctor's advice.",
+    "optOut": "Stop receiving summaries",
+    "loading": "Preparing your summary...",
+    "error": "We had trouble loading your summary. Please try again.",
+    "retry": "Try Again"
+  },
+  "optOut": {
+    "title": "Opt Out of Summaries",
+    "message": "You've chosen not to receive visit summaries. You can re-connect at any time.",
+    "confirm": "Yes, Opt Out",
+    "cancel": "Cancel",
+    "done": "You have been opted out successfully."
+  },
+  "navigator": {
+    "title": "Care Team Dashboard",
+    "workQueue": "Work Queue",
+    "patients": "Patients",
+    "referrals": "Referrals",
+    "totalPatients": "Total Patients",
+    "briefsSent": "Briefs Sent",
+    "pendingOutreach": "Pending Outreach",
+    "referralsOpen": "Open Referrals",
+    "patient": {
+      "name": "Patient",
+      "dob": "Date of Birth",
+      "language": "Language",
+      "briefStatus": "Brief Status",
+      "lastContact": "Last Contact",
+      "actions": "Actions"
+    },
+    "briefStatus": {
+      "pending": "Pending",
+      "sent": "Sent",
+      "viewed": "Viewed",
+      "error": "Error"
+    },
+    "outreach": {
+      "title": "Outreach",
+      "script": "Call Script",
+      "sendSMS": "Send SMS Reminder",
+      "phone": "Phone Number",
+      "send": "Send (Mock)",
+      "sending": "Sending...",
+      "sent": "SMS Queued",
+      "scriptContent": "Hi {name}, this is a reminder about your upcoming appointment. We've prepared a health summary to help you prepare. You can view it at: {link}"
+    },
+    "referral": {
+      "title": "Referral",
+      "specialist": "Specialist",
+      "status": "Status",
+      "date": "Date",
+      "pending": "Pending",
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "unknown": "Unknown"
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "auth": "Authentication failed. Please reconnect.",
+    "fhir": "Could not load health records.",
+    "brief": "Could not generate your summary. Please try again.",
+    "sms": "Could not send SMS. Please try again."
+  }
+}

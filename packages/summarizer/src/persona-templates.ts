@@ -328,11 +328,90 @@ Organize information to help caregivers feel confident and prepared. Include spe
   }
 };
 
+// Spanish-first patient template (6th grade / primaria reading level)
+export const PATIENT_ES_TEMPLATE: PersonaTemplate = {
+  id: 'patient-es-v1.0',
+  name: 'Resumen de Salud en Español',
+  persona: 'patient-es',
+  version: '1.0.0',
+  description: 'Resumen de salud en español sencillo para pacientes de habla hispana (nivel de 6° grado)',
+  targetAudience: {
+    primary: 'Pacientes de habla hispana y sus familias',
+    readingLevel: '6° grado de primaria',
+    clinicalExpertise: 'none'
+  },
+  sections: [
+    {
+      ...SECTION_MANIFESTS.PATIENT_OVERVIEW,
+      id: 'patient-overview',
+      title: 'Su Salud Hoy',
+    },
+    {
+      ...SECTION_MANIFESTS.IMPORTANT_ALERTS,
+      id: 'important-alerts',
+      title: 'Alertas Importantes',
+    },
+    {
+      ...SECTION_MANIFESTS.ACTIVE_CONDITIONS,
+      id: 'active-conditions',
+      title: 'Sus Condiciones de Salud',
+    },
+    {
+      ...SECTION_MANIFESTS.CURRENT_MEDICATIONS,
+      id: 'current-medications',
+      title: 'Sus Medicamentos',
+    },
+    {
+      id: 'visit-questions',
+      title: 'Preguntas para Su Médico',
+      description: 'Exactamente 3 preguntas para hacer en la próxima visita',
+      required: true,
+      enabledByDefault: true,
+      priority: 9,
+    },
+    {
+      id: 'bring-checklist',
+      title: 'Qué Traer a Su Cita',
+      description: 'Exactamente 3 cosas que preparar antes de la visita',
+      required: true,
+      enabledByDefault: true,
+      priority: 8,
+    },
+  ],
+  promptTemplate: `Eres un asistente de salud que crea resúmenes de salud EN ESPAÑOL para pacientes hispanohablantes. Escribe en español sencillo, usando el registro de "Usted". El nivel de lectura debe ser de 6° grado de primaria — oraciones cortas, palabras simples.
+
+INSTRUCCIONES IMPORTANTES:
+- Escribe COMPLETAMENTE EN ESPAÑOL
+- Usa oraciones cortas y palabras simples
+- Explica los términos médicos con palabras sencillas
+- Usa "Usted" y "su" para hablar directamente al paciente
+- Sé tranquilizador pero honesto
+- Incluye números y fechas específicas cuando sea útil
+- Esta es la preparación para una visita médica — sé breve y directo
+
+TONO: Cálido, comprensivo y alentador
+EVITAR: Jerga médica sin explicar, oraciones largas y complejas
+
+Genera las secciones basándote en los datos clínicos disponibles:
+
+{{SECTIONS}}
+
+Recuerda: Este resumen debe ayudar al paciente a entender su salud y sentirse preparado para su próxima cita.`,
+  styleGuidelines: {
+    tone: 'Cálido, comprensivo, alentador',
+    language: 'Español sencillo, registro de "Usted", nivel de primaria',
+    technicalLevel: 'Mínimo — explicar todos los términos médicos en español simple',
+    urgencyHandling: 'Claro pero tranquilizador, dar contexto',
+    uncertaintyExpression: 'Honesto pero no alarmante, sugerir seguimiento'
+  }
+};
+
 // Default template registry
 export const TEMPLATE_REGISTRY: Record<string, PersonaTemplate> = {
   'patient': PATIENT_TEMPLATE,
   'provider': PROVIDER_TEMPLATE,
-  'caregiver': CAREGIVER_TEMPLATE
+  'caregiver': CAREGIVER_TEMPLATE,
+  'patient-es': PATIENT_ES_TEMPLATE,
 };
 
 // A/B test variants

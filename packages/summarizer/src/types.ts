@@ -1,7 +1,40 @@
 // Summarizer type definitions
 import type { ResourceSelectionResult } from '@plumly/fhir-utils';
 
-export type PersonaType = 'patient' | 'provider' | 'caregiver';
+export type PersonaType = 'patient' | 'provider' | 'caregiver' | 'patient-es';
+
+// --- Bilingual visit-prep brief types ---
+
+export interface VisitPrepBrief {
+  /** 1-paragraph overview of the patient's current health status */
+  overview: string;
+  /** Exactly 3 questions to ask the doctor at the upcoming visit */
+  questionsForDoctor: string[];
+  /** Exactly 3 items to bring or prepare for the visit */
+  bringChecklist: string[];
+  language: 'en' | 'es';
+  readingLevel?: string;
+}
+
+export interface BilingualBrief {
+  en: VisitPrepBrief;
+  es: VisitPrepBrief;
+  metadata: {
+    templateId: string;
+    processingTime: number;
+    timestamp: string;
+    model: string;
+    sourceResourceIds: string[];
+  };
+}
+
+export interface BilingualBriefRequest {
+  resourceData: ResourceSelectionResult;
+  patientPreferredName?: string;
+  /** ISO date string for the upcoming encounter */
+  upcomingEncounterDate?: string;
+  abTestVariant?: string;
+}
 
 export interface SectionManifest {
   id: string;

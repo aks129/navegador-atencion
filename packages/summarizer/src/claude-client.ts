@@ -87,7 +87,7 @@ export class ClaudeClient {
       throw new Error('ResourceData is required');
     }
 
-    if (!request.persona || !['patient', 'provider', 'caregiver'].includes(request.persona)) {
+    if (!request.persona || !['patient', 'provider', 'caregiver', 'patient-es'].includes(request.persona)) {
       throw new Error('Valid persona is required');
     }
 
@@ -216,6 +216,9 @@ export class ClaudeClient {
       case 'caregiver':
         tokens *= 1.0; // Balanced approach
         break;
+      case 'patient-es':
+        tokens *= 0.8; // Same as patient — concise bilingual output
+        break;
     }
 
     return Math.min(Math.max(tokens, 1000), 4000); // Between 1K and 4K tokens
@@ -224,13 +227,14 @@ export class ClaudeClient {
   private buildSystemPrompt(persona: PersonaType): string {
     const basePrompt = `You are an AI assistant specialized in summarizing clinical health data. You must return your response in valid JSON format following the exact schema provided.`;
 
-    const personaInstructions = {
+    const personaInstructions: Record<string, string> = {
       patient: 'Use simple, clear language that patients and families can understand. Avoid medical jargon.',
       provider: 'Use precise medical terminology appropriate for healthcare professionals. Focus on clinical decision-making.',
-      caregiver: 'Provide practical, actionable information for caregivers. Include specific care instructions.'
+      caregiver: 'Provide practical, actionable information for caregivers. Include specific care instructions.',
+      'patient-es': 'Responde COMPLETAMENTE EN ESPAÑOL usando el registro de "Usted". Usa lenguaje sencillo a nivel de 6° grado de primaria. Evita términos médicos sin explicarlos. Sé claro, directo y tranquilizador.',
     };
 
-    return `${basePrompt}\n\n${personaInstructions[persona]}\n\nIMPORTANT: Your response must be valid JSON matching this schema:
+    return `${basePrompt}\n\n${personaInstructions[persona] ?? personaInstructions['patient']}\n\nIMPORTANT: Your response must be valid JSON matching this schema:
 {
   "summary": "string - main narrative summary",
   "sections": [
