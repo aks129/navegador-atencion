@@ -95,6 +95,10 @@ jspm_packages/
 .env.production.local
 .vercel
 
+# Local AI tool config (machine-specific paths)
+.mcp.json
+.claude/scheduled_tasks.lock
+
 # ── GSD baseline (auto-generated) ──
 .gsd
 .gsd-id
