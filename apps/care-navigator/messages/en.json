@@ -3,7 +3,8 @@
     "appName": "Care Navigator",
     "patient": "Patient Portal",
     "navigator": "Care Team",
-    "logout": "Sign Out"
+    "logout": "Sign Out",
+    "qualityPortal": "Quality Portal"
   },
   "language": {
     "en": "English",

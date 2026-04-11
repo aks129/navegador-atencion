@@ -25,8 +25,20 @@ export default async function NavigatorLayout({
             <span className="hidden sm:inline text-gray-400">|</span>
             <span className="hidden sm:inline text-sm text-gray-600">{nav('navigator')}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span className="hidden md:inline">Demo Navigator</span>
+          <div className="flex items-center gap-3 text-sm">
+            <a
+              href={process.env.NEXT_PUBLIC_QUALITY_PORTAL_URL ?? 'http://localhost:3002'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-1.5 text-gray-500 hover:text-purple-700 transition-colors"
+            >
+              Quality Portal
+              <svg className="h-3.5 w-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+            <span className="hidden md:inline text-gray-300">|</span>
+            <span className="hidden md:inline text-gray-500">Demo Navigator</span>
           </div>
         </div>
       </header>
@@ -74,6 +86,9 @@ export default async function NavigatorLayout({
                 </svg>
                 Launch SMART Demo
               </a>
+              <p className="mt-1.5 px-1 text-xs text-gray-400 leading-snug">
+                Connect to SMART Health IT sandbox and generate a bilingual patient brief
+              </p>
             </div>
 
             <div className="pt-2 border-t border-gray-100">

@@ -28,6 +28,14 @@ export function AppHeader({ showNav = true, variant = 'patient' }: AppHeaderProp
               <Link href="/navigator" className="text-gray-600 hover:text-blue-700 transition-colors">
                 {t('patient')}
               </Link>
+              <a
+                href={process.env.NEXT_PUBLIC_QUALITY_PORTAL_URL ?? 'http://localhost:3002'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-purple-700 transition-colors"
+              >
+                {t('qualityPortal')} →
+              </a>
             </nav>
           )}
           <LocaleSwitcher />

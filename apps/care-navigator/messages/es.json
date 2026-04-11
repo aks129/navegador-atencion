@@ -3,7 +3,8 @@
     "appName": "Navegador de Salud",
     "patient": "Portal del Paciente",
     "navigator": "Equipo de Cuidado",
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "qualityPortal": "Portal de Calidad"
   },
   "language": {
     "en": "English",
