@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import type { WorkQueueItem } from '@/types/navigator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,8 +13,20 @@ interface OutreachScriptProps {
 
 export function OutreachScript({ patient }: OutreachScriptProps) {
   const t = useTranslations('navigator.outreach');
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3001';
-  const briefLink = `${appUrl}/${patient.preferredLanguage}/patient/brief`;
+
+  // Derive the app base URL at runtime so it's always the correct deployed origin.
+  // NEXT_PUBLIC_APP_URL (build-time) takes precedence; falls back to window.location.origin
+  // at runtime to avoid baking localhost into the production bundle.
+  const [appUrl, setAppUrl] = useState(process.env.NEXT_PUBLIC_APP_URL ?? '');
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_APP_URL) {
+      setAppUrl(window.location.origin);
+    }
+  }, []);
+
+  const briefLink = appUrl
+    ? `${appUrl}/${patient.preferredLanguage}/patient/brief`
+    : `/${patient.preferredLanguage}/patient/brief`;
 
   const scriptTemplate = t('scriptContent')
     .replace('{name}', patient.name.split(' ')[0])

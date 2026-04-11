@@ -103,6 +103,7 @@ jspm_packages/
 *.code-workspace
 .env.*
 !.env.example
+!.env.local.example
 __pycache__/
 *.pyc
 .venv/
