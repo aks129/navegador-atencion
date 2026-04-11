@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd ../.. && npx turbo run build --filter=@plumly/quality-portal",
+  "outputDirectory": ".next",
+  "installCommand": "cd ../.. && npm install",
+  "framework": "nextjs"
+}

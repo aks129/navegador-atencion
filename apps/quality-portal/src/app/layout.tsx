@@ -32,6 +32,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
                   UDS 2024 · Demo
                 </span>
+                <a
+                  href={process.env.NEXT_PUBLIC_CARE_NAVIGATOR_URL ?? 'http://localhost:3001'}
+                  className="hidden sm:inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition-colors"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Care Navigator
+                </a>
                 <a href="/pitch" className="hidden sm:block text-sm text-gray-500 hover:text-blue-600 transition-colors">
                   Pitch
                 </a>
