@@ -31,6 +31,18 @@ export function middleware(request: NextRequest): NextResponse {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Login page lives at /login (no locale prefix) — next-intl would redirect
+  // /login -> /en/login, but that 404s since there's no [locale]/login file.
+  // Serve /login directly; if the browser somehow lands on /en/login redirect back.
+  if (strippedPath === '/login') {
+    if (pathname !== '/login') {
+      const redirect = new URL('/login', request.url);
+      redirect.search = request.nextUrl.search; // preserve ?from=
+      return NextResponse.redirect(redirect);
+    }
+    return NextResponse.next();
+  }
+
   // Quality portal routes skip next-intl (English-only, no locale prefix)
   if (pathname.startsWith('/quality')) {
     return NextResponse.next();
