@@ -44,7 +44,9 @@ export default function BriefPage() {
     }
 
     loadBrief();
-  }, []);
+  // router and t are stable references — listed to satisfy exhaustive-deps without causing re-runs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, t]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -62,6 +64,15 @@ export default function BriefPage() {
             <p className="text-red-700">{error}</p>
             <Button variant="outline" onClick={() => { setError(''); setLoading(true); window.location.reload(); }}>
               {t('retry')}
+            </Button>
+          </div>
+        )}
+
+        {!loading && !error && !brief && (
+          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center space-y-4">
+            <p className="text-gray-500">{t('noData')}</p>
+            <Button variant="outline" onClick={() => router.push('/patient/launch')}>
+              {t('reconnect')}
             </Button>
           </div>
         )}

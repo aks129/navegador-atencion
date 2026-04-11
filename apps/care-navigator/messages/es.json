@@ -51,7 +51,9 @@
     "optOut": "Dejar de recibir resúmenes",
     "loading": "Preparando su resumen...",
     "error": "Tuvimos un problema cargando su resumen. Por favor intente de nuevo.",
-    "retry": "Intentar de Nuevo"
+    "retry": "Intentar de Nuevo",
+    "noData": "No hay datos disponibles. Por favor reconéctese a sus expedientes médicos.",
+    "reconnect": "Reconectarse"
   },
   "optOut": {
     "title": "Dejar de Recibir Resúmenes",

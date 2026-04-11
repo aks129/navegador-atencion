@@ -5,22 +5,23 @@ import { getSession } from '@/lib/auth';
 import { getSmartConfig } from '@/lib/smart-client';
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const iss = searchParams.get('iss') ?? process.env.NEXT_PUBLIC_SMART_ISS ?? '';
+  const { searchParams, origin } = new URL(request.url);
+  const iss = searchParams.get('iss') ?? process.env.NEXT_PUBLIC_SMART_ISS ?? 'https://launch.smarthealthit.org/v/r4/fhir';
   const launch = searchParams.get('launch') ?? undefined;
   const locale = (searchParams.get('locale') ?? 'es') as 'en' | 'es';
 
-  if (!iss) {
-    return NextResponse.json({ error: 'Missing iss parameter' }, { status: 400 });
-  }
+  // Derive redirect URI from the incoming request origin when env var is not set.
+  // This ensures the deployed URL works automatically without manual env var configuration.
+  const redirectUri =
+    process.env.NEXT_PUBLIC_SMART_REDIRECT_URI?.trim() ?? `${origin}/api/auth/callback`;
 
   try {
     const pkce = await generatePKCEParams();
 
-    const config = getSmartConfig({ iss, launch });
+    const config = getSmartConfig({ iss, launch, redirectUri });
     const { url } = await buildAuthorizationUrl(config, pkce);
 
-    // Store PKCE and locale in session before redirecting
+    // Store PKCE, locale, and redirectUri in session before redirecting
     const session = await getSession();
     session.pkce = { codeVerifier: pkce.codeVerifier, state: pkce.state };
     session.locale = locale;

@@ -63,7 +63,20 @@ export default async function NavigatorLayout({
               {t('referrals')}
             </Link>
 
+            {/* SMART on FHIR demo launch */}
             <div className="pt-3 mt-2 border-t border-gray-100">
+              <a
+                href={`/api/auth/launch?locale=${locale}`}
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold bg-blue-700 text-white hover:bg-blue-800 transition-colors"
+              >
+                <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                </svg>
+                Launch SMART Demo
+              </a>
+            </div>
+
+            <div className="pt-2 border-t border-gray-100">
               <a
                 href={process.env.NEXT_PUBLIC_QUALITY_PORTAL_URL ?? 'http://localhost:3002'}
                 target="_blank"

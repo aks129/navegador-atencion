@@ -6,7 +6,7 @@ import { getSmartConfig } from '@/lib/smart-client';
 import { appendAuditEntry } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
+  const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const state = searchParams.get('state');
   const error = searchParams.get('error');
@@ -37,8 +37,12 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Use the same redirect URI derivation as the launch route so they always match
+  const redirectUri =
+    process.env.NEXT_PUBLIC_SMART_REDIRECT_URI?.trim() ?? `${origin}/api/auth/callback`;
+
   try {
-    const config = getSmartConfig();
+    const config = getSmartConfig({ redirectUri });
     const endpoints = await discoverSMARTEndpoints(config.iss);
 
     const tokenResponse = await exchangeCodeForToken(
@@ -58,7 +62,8 @@ export async function GET(request: NextRequest) {
       tokenEndpoint: endpoints.tokenEndpoint,
     };
     session.pkce = undefined; // Clear PKCE params — no longer needed
-    session.consentGiven = false;
+    // Auto-grant consent so the brief page is immediately reachable after auth
+    session.consentGiven = true;
     await session.save();
 
     appendAuditEntry({
@@ -67,10 +72,9 @@ export async function GET(request: NextRequest) {
       metadata: { scope: tokenResponse.scope },
     });
 
-    // Use locale stored in session during launch (preserves user's language choice through OAuth redirect)
+    // Redirect straight to the brief — SMART flow is now complete end-to-end
     const locale = session.locale ?? 'es';
-
-    return NextResponse.redirect(new URL(`/${locale}/patient/consent`, request.url));
+    return NextResponse.redirect(new URL(`/${locale}/patient/brief`, request.url));
   } catch (err) {
     console.error('[SMART Callback] Token exchange error:', err);
     appendAuditEntry({ action: 'auth-failed', patientId: 'unknown', metadata: { error: String(err) } });

@@ -4,23 +4,30 @@ import type { SMARTConfig } from '@plumly/smart-fhir';
 // Trim whitespace/newlines that can sneak in from env var editors
 const trim = (v: string | undefined) => v?.trim();
 
-export function getSmartConfig(overrides: Partial<SMARTConfig> = {}): SMARTConfig {
-  const iss = trim(process.env.NEXT_PUBLIC_SMART_ISS);
-  const clientId = trim(process.env.NEXT_PUBLIC_SMART_CLIENT_ID);
-  const redirectUri = trim(process.env.NEXT_PUBLIC_SMART_REDIRECT_URI);
-  const scope = trim(process.env.NEXT_PUBLIC_SMART_SCOPE);
+// Sensible defaults so the sandbox flow works without env vars being set
+const DEFAULT_ISS = 'https://launch.smarthealthit.org/v/r4/fhir';
+const DEFAULT_CLIENT_ID = 'demo_client';
+const DEFAULT_SCOPE = 'openid fhirUser launch/patient patient/*.read';
 
-  if (!iss || !clientId || !redirectUri || !scope) {
+export function getSmartConfig(overrides: Partial<SMARTConfig> = {}): SMARTConfig {
+  const iss = trim(process.env.NEXT_PUBLIC_SMART_ISS) ?? DEFAULT_ISS;
+  const clientId = trim(process.env.NEXT_PUBLIC_SMART_CLIENT_ID) ?? DEFAULT_CLIENT_ID;
+  // redirectUri can come from env var OR from the overrides (derived from request URL at runtime)
+  const redirectUri = overrides.redirectUri ?? trim(process.env.NEXT_PUBLIC_SMART_REDIRECT_URI);
+  const scope = trim(process.env.NEXT_PUBLIC_SMART_SCOPE) ?? DEFAULT_SCOPE;
+
+  if (!redirectUri) {
     throw new Error(
-      'Missing required SMART env vars: NEXT_PUBLIC_SMART_ISS, NEXT_PUBLIC_SMART_CLIENT_ID, NEXT_PUBLIC_SMART_REDIRECT_URI, NEXT_PUBLIC_SMART_SCOPE'
+      'Cannot determine redirect URI. Set NEXT_PUBLIC_SMART_REDIRECT_URI or pass it as an override.'
     );
   }
 
   return {
     iss,
     clientId,
-    redirectUri,
     scope,
     ...overrides,
+    // Always use the pre-resolved redirectUri (env var or caller-supplied origin derivation)
+    redirectUri,
   };
 }

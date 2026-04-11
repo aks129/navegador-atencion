@@ -51,7 +51,9 @@
     "optOut": "Stop receiving summaries",
     "loading": "Preparing your summary...",
     "error": "We had trouble loading your summary. Please try again.",
-    "retry": "Try Again"
+    "retry": "Try Again",
+    "noData": "No summary data available. Please reconnect to your health records.",
+    "reconnect": "Reconnect"
   },
   "optOut": {
     "title": "Opt Out of Summaries",
