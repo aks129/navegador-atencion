@@ -1,0 +1,174 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - heading "Plumly" [level=1] [ref=e7]
+          - paragraph [ref=e8]: FHIR Data Summarization with AI
+        - generic [ref=e9]: Powered by Claude
+    - main [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - heading "1. Load FHIR Data" [level=2] [ref=e13]
+          - navigation [ref=e15]:
+            - button "FHIR Server Connection" [ref=e16] [cursor=pointer]
+            - button "File Upload" [ref=e17] [cursor=pointer]
+          - generic [ref=e18]:
+            - generic [ref=e19]:
+              - generic [ref=e20]:
+                - img [ref=e21]
+                - text: FHIR Server Connection
+              - generic [ref=e23]: Connect to public FHIR test servers and browse available patients
+            - generic [ref=e24]:
+              - generic [ref=e25]:
+                - generic [ref=e26]: Select FHIR Server
+                - generic [ref=e27]:
+                  - button "Firely Public Server Public test server by Firely" [ref=e28] [cursor=pointer]:
+                    - generic [ref=e29] [cursor=pointer]: Firely Public Server
+                    - generic [ref=e30] [cursor=pointer]: Public test server by Firely
+                  - button "SMART Health IT SMART on FHIR test server" [ref=e31] [cursor=pointer]:
+                    - generic [ref=e32] [cursor=pointer]: SMART Health IT
+                    - generic [ref=e33] [cursor=pointer]: SMART on FHIR test server
+                  - button "HAPI FHIR Public Public HAPI FHIR test server" [ref=e34] [cursor=pointer]:
+                    - generic [ref=e35] [cursor=pointer]: HAPI FHIR Public
+                    - generic [ref=e36] [cursor=pointer]: Public HAPI FHIR test server
+                  - button "Local Development Local Docker FHIR server" [ref=e37] [cursor=pointer]:
+                    - generic [ref=e38] [cursor=pointer]: Local Development
+                    - generic [ref=e39] [cursor=pointer]: Local Docker FHIR server
+              - generic [ref=e40]:
+                - generic [ref=e41]: Server URL
+                - generic [ref=e42]:
+                  - textbox "Server URL" [ref=e43]: https://hapi.fhir.org/baseR4
+                  - button "Test" [ref=e44] [cursor=pointer]:
+                    - img
+                    - text: Test
+              - generic [ref=e45]:
+                - generic [ref=e46]:
+                  - generic [ref=e47]: Patient Selection
+                  - button "Browse Patients" [ref=e48] [cursor=pointer]:
+                    - img
+                    - text: Browse Patients
+                - generic [ref=e49]:
+                  - generic [ref=e50]: "Or enter Patient ID manually:"
+                  - textbox "Or enter Patient ID manually:" [ref=e51]
+              - button "Show Authentication" [ref=e53] [cursor=pointer]:
+                - img
+                - text: Show Authentication
+              - generic [ref=e54]:
+                - checkbox "Demo Mode (Sanitize PHI)" [checked] [ref=e55] [cursor=pointer]:
+                  - generic:
+                    - img
+                - generic [ref=e56]:
+                  - generic [ref=e57]: Demo Mode (Sanitize PHI)
+                  - paragraph [ref=e58]: When enabled, all personal health information will be anonymized for demo purposes
+                - img [ref=e59]
+              - generic [ref=e61]:
+                - button "Fetch Patient Data" [disabled]:
+                  - img
+                  - text: Fetch Patient Data
+              - generic [ref=e62]:
+                - paragraph [ref=e63]: "ℹ️ About Public Test Servers:"
+                - paragraph [ref=e64]: • These are open FHIR test servers for development and testing
+                - paragraph [ref=e65]: • Uses Patient/$everything operation to fetch comprehensive data
+                - paragraph [ref=e66]: • Data is cached for 15 minutes to reduce server load
+                - paragraph [ref=e67]: • Demo mode sanitizes all personal health information (PHI)
+                - paragraph [ref=e68]: • Some servers may be slow or have rate limits
+        - generic [ref=e69]:
+          - generic [ref=e70]:
+            - generic [ref=e71]:
+              - heading "4. Select Persona" [level=2] [ref=e72]
+              - generic [ref=e73]:
+                - generic [ref=e74]: Target Audience
+                - generic [ref=e75]:
+                  - button "Patient Simple, clear language for patients and families" [ref=e76] [cursor=pointer]:
+                    - generic [ref=e77] [cursor=pointer]:
+                      - generic [ref=e78] [cursor=pointer]:
+                        - img [ref=e79] [cursor=pointer]
+                        - generic [ref=e82] [cursor=pointer]: Patient
+                      - generic [ref=e83] [cursor=pointer]: Simple, clear language for patients and families
+                  - button "Provider Clinical terminology for healthcare professionals" [ref=e86] [cursor=pointer]:
+                    - generic [ref=e87] [cursor=pointer]:
+                      - generic [ref=e88] [cursor=pointer]:
+                        - img [ref=e89] [cursor=pointer]
+                        - generic [ref=e93] [cursor=pointer]: Provider
+                      - generic [ref=e94] [cursor=pointer]: Clinical terminology for healthcare professionals
+                  - button "Caregiver Practical, actionable information for caregivers" [ref=e95] [cursor=pointer]:
+                    - generic [ref=e96] [cursor=pointer]:
+                      - generic [ref=e97] [cursor=pointer]:
+                        - img [ref=e98] [cursor=pointer]
+                        - generic [ref=e100] [cursor=pointer]: Caregiver
+                      - generic [ref=e101] [cursor=pointer]: Practical, actionable information for caregivers
+                - generic [ref=e102]: Changing persona will regenerate the summary with appropriate language and detail level
+            - generic [ref=e103]:
+              - heading "5. Configure Prompt" [level=2] [ref=e104]
+              - generic [ref=e105]:
+                - heading "Prompt Configuration" [level=3] [ref=e107]
+                - generic [ref=e108]:
+                  - generic [ref=e109]: Prompt Template
+                  - combobox [ref=e110]:
+                    - option "Select a template..."
+                    - option "Patient-Friendly Summary" [selected]
+                    - option "Clinical Summary for Providers"
+                    - option "Payer Utilization Summary"
+                    - option "Hospital Discharge Summary"
+                    - option "Preventive Care Gaps Analysis"
+                    - option "Medication Reconciliation Summary"
+                  - paragraph [ref=e111]: A simple, easy-to-understand summary for patients
+                - generic [ref=e112]:
+                  - generic [ref=e113]: Target Audience
+                  - generic [ref=e114]:
+                    - generic [ref=e115]:
+                      - radio "Patient Simple, friendly language" [checked] [ref=e116]
+                      - generic [ref=e117] [cursor=pointer]:
+                        - generic [ref=e118] [cursor=pointer]: Patient
+                        - generic [ref=e119] [cursor=pointer]: Simple, friendly language
+                    - generic [ref=e120]:
+                      - radio "Provider Clinical terminology" [ref=e121]
+                      - generic [ref=e122] [cursor=pointer]:
+                        - generic [ref=e123] [cursor=pointer]: Provider
+                        - generic [ref=e124] [cursor=pointer]: Clinical terminology
+                    - generic [ref=e125]:
+                      - radio "Payer Utilization focused" [ref=e126]
+                      - generic [ref=e127] [cursor=pointer]:
+                        - generic [ref=e128] [cursor=pointer]: Payer
+                        - generic [ref=e129] [cursor=pointer]: Utilization focused
+                - generic [ref=e130]:
+                  - generic [ref=e131]: Output Format
+                  - generic [ref=e132]:
+                    - generic [ref=e133]:
+                      - radio "Narrative Flowing text" [checked] [ref=e134]
+                      - generic [ref=e135] [cursor=pointer]:
+                        - generic [ref=e136] [cursor=pointer]: Narrative
+                        - generic [ref=e137] [cursor=pointer]: Flowing text
+                    - generic [ref=e138]:
+                      - radio "Structured Bullet points & sections" [ref=e139]
+                      - generic [ref=e140] [cursor=pointer]:
+                        - generic [ref=e141] [cursor=pointer]: Structured
+                        - generic [ref=e142] [cursor=pointer]: Bullet points & sections
+                    - generic [ref=e143]:
+                      - radio "Composition FHIR format" [ref=e144]
+                      - generic [ref=e145] [cursor=pointer]:
+                        - generic [ref=e146] [cursor=pointer]: Composition
+                        - generic [ref=e147] [cursor=pointer]: FHIR format
+                - generic [ref=e149]:
+                  - checkbox "Include recommendations" [ref=e150]
+                  - generic [ref=e151]: Include recommendations
+                - generic [ref=e152]:
+                  - generic [ref=e153]: Focus Areas
+                  - generic [ref=e154]:
+                    - textbox "Add focus area (e.g., diabetes, medications)" [ref=e155]
+                    - button "Add" [ref=e156] [cursor=pointer]
+            - generic [ref=e157]:
+              - heading "6. Generate Summary" [level=2] [ref=e158]
+              - button "Generate AI Summary" [disabled] [ref=e159]
+          - generic [ref=e161]:
+            - heading "AI Generated Summary" [level=2] [ref=e163]
+            - paragraph [ref=e166]: Upload a FHIR bundle and generate a summary to see results
+        - generic [ref=e167]:
+          - paragraph [ref=e168]: Built with Next.js, TypeScript, and Claude AI
+          - paragraph [ref=e169]: For demo purposes only. Do not use with real patient data.
+  - alert [ref=e170]
+```
