@@ -31,20 +31,22 @@ export function middleware(request: NextRequest): NextResponse {
     return NextResponse.redirect(loginUrl);
   }
 
+  // API routes, login, and quality-portal routes don't need next-intl locale
+  // processing. Passing them to handleI18n redirects e.g. POST /api/demo-auth/login
+  // → /es/api/demo-auth/login which breaks the login flow entirely.
+  if (pathname.startsWith('/api/') || pathname.startsWith('/quality')) {
+    return NextResponse.next();
+  }
+
   // Login page lives at /login (no locale prefix) — next-intl would redirect
-  // /login -> /en/login, but that 404s since there's no [locale]/login file.
-  // Serve /login directly; if the browser somehow lands on /en/login redirect back.
+  // /login -> /es/login, but that 404s since there's no [locale]/login file.
+  // Serve /login directly; redirect any locale-prefixed variant back to /login.
   if (strippedPath === '/login') {
     if (pathname !== '/login') {
       const redirect = new URL('/login', request.url);
       redirect.search = request.nextUrl.search; // preserve ?from=
       return NextResponse.redirect(redirect);
     }
-    return NextResponse.next();
-  }
-
-  // Quality portal routes skip next-intl (English-only, no locale prefix)
-  if (pathname.startsWith('/quality')) {
     return NextResponse.next();
   }
 
