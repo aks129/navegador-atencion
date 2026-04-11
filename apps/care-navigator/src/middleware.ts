@@ -20,7 +20,10 @@ export function middleware(request: NextRequest): NextResponse {
   const token = process.env['PORTAL_AUTH_TOKEN'] ?? 'gigi-demo-2024';
   const isAuthed = authCookie?.value === token;
 
-  const isExempt = AUTH_EXEMPT.some(p => pathname.startsWith(p));
+  // Strip locale prefix before checking exemptions so /en/login and /es/login
+  // are treated the same as /login (next-intl adds the prefix on first redirect)
+  const strippedPath = pathname.replace(/^\/(en|es)\//, '/');
+  const isExempt = AUTH_EXEMPT.some(p => pathname.startsWith(p) || strippedPath.startsWith(p));
 
   if (!isExempt && !isAuthed) {
     const loginUrl = new URL('/login', request.url);
