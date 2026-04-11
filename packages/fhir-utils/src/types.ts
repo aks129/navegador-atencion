@@ -5,6 +5,11 @@ export interface FHIRBundle {
   type: string;
   entry?: FHIRBundleEntry[];
   total?: number;
+  meta?: {
+    lastUpdated?: string;
+    profile?: string[];
+    tag?: Array<{ system?: string; code?: string; display?: string }>;
+  };
 }
 
 export interface FHIRBundleEntry {
@@ -15,9 +20,11 @@ export interface FHIRBundleEntry {
 export interface FHIRResource {
   resourceType: string;
   id?: string;
+  reference?: string;
   meta?: {
     lastUpdated?: string;
     profile?: string[];
+    tag?: Array<{ system?: string; code?: string; display?: string }>;
   };
 }
 

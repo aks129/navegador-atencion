@@ -3,6 +3,11 @@ export interface FHIRBundle {
   id?: string
   type: 'document' | 'message' | 'transaction' | 'transaction-response' | 'batch' | 'batch-response' | 'history' | 'searchset' | 'collection'
   entry?: FHIRBundleEntry[]
+  meta?: {
+    lastUpdated?: string
+    profile?: string[]
+    tag?: Array<{ system?: string; code?: string; display?: string }>
+  }
 }
 
 export interface FHIRBundleEntry {

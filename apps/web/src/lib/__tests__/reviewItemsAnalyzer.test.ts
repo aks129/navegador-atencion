@@ -47,6 +47,7 @@ const createMockMedication = (overrides: Partial<ProcessedMedication> = {}): Pro
 
 const createMockSelection = (overrides: Partial<ResourceSelectionResult> = {}): ResourceSelectionResult => ({
   patient: {
+    resourceType: 'Patient',
     name: [{ given: ['John'], family: 'Doe' }],
     gender: 'male',
     birthDate: '1980-01-01',
@@ -55,6 +56,7 @@ const createMockSelection = (overrides: Partial<ResourceSelectionResult> = {}): 
   labValues: [],
   medications: [],
   conditions: [],
+  encounters: [],
   processingStats: {
     totalObservations: 0,
     totalMedications: 0,
@@ -281,6 +283,7 @@ describe('reviewItemsAnalyzer', () => {
     it('should identify mammography screening gap for eligible women', () => {
       const selection = createMockSelection({
         patient: {
+          resourceType: 'Patient',
           name: [{ given: ['Jane'], family: 'Doe' }],
           gender: 'female',
           birthDate: '1970-01-01', // 54 years old
@@ -302,6 +305,7 @@ describe('reviewItemsAnalyzer', () => {
     it('should not flag mammography for men or ineligible age groups', () => {
       const selection = createMockSelection({
         patient: {
+          resourceType: 'Patient',
           name: [{ given: ['John'], family: 'Doe' }],
           gender: 'male',
           birthDate: '1970-01-01',
@@ -326,7 +330,9 @@ describe('reviewItemsAnalyzer', () => {
           isActive: true,
           isChronic: true,
           code: 'E11',
-          id: 'condition-1'
+          id: 'condition-1',
+          relevanceScore: 0.9,
+          source: { id: 'cond-1' }
         }],
         labValues: [
           createMockLabValue({
@@ -360,6 +366,7 @@ describe('reviewItemsAnalyzer', () => {
     it('should identify colonoscopy screening gap for eligible adults', () => {
       const selection = createMockSelection({
         patient: {
+          resourceType: 'Patient',
           name: [{ given: ['John'], family: 'Doe' }],
           gender: 'male',
           birthDate: '1970-01-01', // 54 years old
@@ -380,6 +387,7 @@ describe('reviewItemsAnalyzer', () => {
     it('should combine all analysis types and sort by severity', () => {
       const selection = createMockSelection({
         patient: {
+          resourceType: 'Patient',
           name: [{ given: ['Jane'], family: 'Doe' }],
           gender: 'female',
           birthDate: '1970-01-01',

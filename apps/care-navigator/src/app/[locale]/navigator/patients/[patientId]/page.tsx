@@ -62,8 +62,53 @@ export default function PatientDetailPage() {
             <p className="text-gray-500">Last Contact</p>
             <p className="font-medium">{patient.lastContact ?? '—'}</p>
           </div>
+          <div>
+            <p className="text-gray-500">Last Outreach</p>
+            <p className="font-medium">{patient.lastOutreach ?? 'Never'}</p>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Conditions */}
+      {patient.conditions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Active Conditions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1">
+              {patient.conditions.map((condition) => (
+                <li key={condition} className="flex items-center gap-2 text-sm">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />
+                  {condition}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Care Gaps */}
+      {patient.careGaps.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Care Gaps</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {patient.careGaps.map((gap) => {
+                const lower = gap.toLowerCase();
+                const isUrgent = lower.includes('overdue') || lower.includes('uncontrolled');
+                return (
+                  <Badge key={gap} variant={isUrgent ? 'destructive' : 'warning'}>
+                    {gap}
+                  </Badge>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Outreach section */}
       <OutreachScript patient={patient} />

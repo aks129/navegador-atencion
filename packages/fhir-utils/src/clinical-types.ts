@@ -260,7 +260,7 @@ export interface ProcessedLabValue {
   date: string;
   isAbnormal?: boolean;
   relevanceScore: number;
-  source: FHIRObservation;
+  source: Partial<FHIRObservation> & Pick<FHIRResource, 'id'>;
 }
 
 export interface ProcessedMedication {
@@ -272,16 +272,19 @@ export interface ProcessedMedication {
   frequency?: string;
   route?: string;
   authoredDate?: string;
+  rxNormCode?: string;
   validityPeriod?: {
     start?: string;
     end?: string;
   };
   relevanceScore: number;
-  source: FHIRMedicationRequest;
+  source: Partial<FHIRMedicationRequest> & Pick<FHIRResource, 'id'>;
 }
 
 export interface ProcessedCondition {
+  id?: string;
   name: string;
+  code?: string;
   clinicalStatus: string;
   verificationStatus?: string;
   category?: string;
@@ -291,7 +294,7 @@ export interface ProcessedCondition {
   isChronic: boolean;
   isActive: boolean;
   relevanceScore: number;
-  source: FHIRCondition;
+  source: Partial<FHIRCondition> & Pick<FHIRResource, 'id'>;
 }
 
 export interface ResourceSelectionResult {

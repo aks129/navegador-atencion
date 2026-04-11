@@ -10,8 +10,11 @@ export interface WorkQueueItem {
   preferredLanguage: PreferredLanguage;
   briefStatus: BriefStatus;
   lastContact?: string;
+  lastOutreach: string | null;
   phone?: string;
   upcomingAppointment?: string;
+  careGaps: string[];
+  conditions: string[];
 }
 
 export interface OutreachTask {

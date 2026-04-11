@@ -24,8 +24,9 @@
     "@plumly/summarizer": "file:../summarizer"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20",
-    "eslint": "^8"
+    "eslint": "^8",
+    "typescript": "^5"
   }
 }
