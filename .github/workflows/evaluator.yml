@@ -50,7 +50,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload evaluation report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: evaluation-report
@@ -202,7 +202,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload benchmark report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: benchmark-report
